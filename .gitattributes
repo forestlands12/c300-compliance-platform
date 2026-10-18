@@ -1,0 +1,15 @@
+# WHY: the team works on Windows and Linux; store text with LF so diffs stay clean
+* text=auto eol=lf
+# Windows scripts need CRLF to run reliably
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+# Windows policy exports (secedit) are often UTF-16; never convert them
+*.inf binary
+# Office files and images are binary
+*.xlsx binary
+*.docx binary
+*.pptx binary
+*.pdf binary
+*.png binary
+*.jpg binary

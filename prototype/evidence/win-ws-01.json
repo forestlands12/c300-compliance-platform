@@ -1,0 +1,130 @@
+{
+  "host": "win-ws-01",
+  "platform": "windows",
+  "source": "samples/win-ws-01/secpol.inf",
+  "scanned_at": "2026-10-08T03:57:34+00:00",
+  "summary": {
+    "total": 9,
+    "PASS": 6,
+    "FAIL": 2,
+    "NOT_COLLECTED": 1,
+    "ERROR": 0,
+    "score_percent": 75.0
+  },
+  "results": [
+    {
+      "control_id": "PW-01",
+      "title": "Minimum password length is at least 14",
+      "severity": "high",
+      "fact": "password.min_length",
+      "operator": "gte",
+      "expected": 14,
+      "actual": 8,
+      "status": "FAIL",
+      "message": "expected gte 14, found 8",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "PW-02",
+      "title": "Maximum password age is 1 to 365 days",
+      "severity": "medium",
+      "fact": "password.max_age_days",
+      "operator": "between",
+      "expected": [
+        1,
+        365
+      ],
+      "actual": 42,
+      "status": "PASS",
+      "message": "",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "PW-03",
+      "title": "Minimum password age is at least 1 day",
+      "severity": "low",
+      "fact": "password.min_age_days",
+      "operator": "gte",
+      "expected": 1,
+      "actual": 1,
+      "status": "PASS",
+      "message": "",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "PW-04",
+      "title": "Password history remembers at least 24",
+      "severity": "medium",
+      "fact": "password.history_size",
+      "operator": "gte",
+      "expected": 24,
+      "actual": 24,
+      "status": "PASS",
+      "message": "",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "PW-05",
+      "title": "Password complexity is enabled",
+      "severity": "medium",
+      "fact": "password.complexity_enabled",
+      "operator": "eq",
+      "expected": true,
+      "actual": true,
+      "status": "PASS",
+      "message": "",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "PW-06",
+      "title": "Reversible password encryption is disabled",
+      "severity": "high",
+      "fact": "password.reversible_encryption",
+      "operator": "eq",
+      "expected": false,
+      "actual": false,
+      "status": "PASS",
+      "message": "",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "LK-01",
+      "title": "Account lockout after 1 to 5 failed logins",
+      "severity": "high",
+      "fact": "lockout.threshold",
+      "operator": "between",
+      "expected": [
+        1,
+        5
+      ],
+      "actual": 0,
+      "status": "FAIL",
+      "message": "expected between [1, 5], found 0",
+      "reference": "CIS-style lockout policy (mapping TBD)"
+    },
+    {
+      "control_id": "LK-02",
+      "title": "Lockout duration is at least 15 minutes",
+      "severity": "medium",
+      "fact": "lockout.duration_minutes",
+      "operator": "gte",
+      "expected": 15,
+      "actual": null,
+      "status": "NOT_COLLECTED",
+      "message": "fact 'lockout.duration_minutes' was not found on the target",
+      "reference": "CIS-style lockout policy (mapping TBD)"
+    },
+    {
+      "control_id": "AC-01",
+      "title": "Guest account is disabled",
+      "severity": "high",
+      "fact": "account.guest_enabled",
+      "operator": "eq",
+      "expected": false,
+      "actual": false,
+      "status": "PASS",
+      "message": "",
+      "reference": "CIS-style account policy (mapping TBD)"
+    }
+  ]
+}

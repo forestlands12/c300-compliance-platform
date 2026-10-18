@@ -1,0 +1,123 @@
+{
+  "host": "linux-web-01",
+  "platform": "linux",
+  "source": "samples/linux-web-01",
+  "scanned_at": "2026-10-08T03:57:34+00:00",
+  "summary": {
+    "total": 8,
+    "PASS": 1,
+    "FAIL": 6,
+    "NOT_COLLECTED": 1,
+    "ERROR": 0,
+    "score_percent": 14.3
+  },
+  "results": [
+    {
+      "control_id": "PW-01",
+      "title": "Minimum password length is at least 14",
+      "severity": "high",
+      "fact": "password.min_length",
+      "operator": "gte",
+      "expected": 14,
+      "actual": 9,
+      "status": "FAIL",
+      "message": "expected gte 14, found 9",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "PW-02",
+      "title": "Maximum password age is 1 to 365 days",
+      "severity": "medium",
+      "fact": "password.max_age_days",
+      "operator": "between",
+      "expected": [
+        1,
+        365
+      ],
+      "actual": 99999,
+      "status": "FAIL",
+      "message": "expected between [1, 365], found 99999",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "PW-03",
+      "title": "Minimum password age is at least 1 day",
+      "severity": "low",
+      "fact": "password.min_age_days",
+      "operator": "gte",
+      "expected": 1,
+      "actual": 0,
+      "status": "FAIL",
+      "message": "expected gte 1, found 0",
+      "reference": "CIS-style password policy (mapping TBD)"
+    },
+    {
+      "control_id": "LK-01",
+      "title": "Account lockout after 1 to 5 failed logins",
+      "severity": "high",
+      "fact": "lockout.threshold",
+      "operator": "between",
+      "expected": [
+        1,
+        5
+      ],
+      "actual": 3,
+      "status": "PASS",
+      "message": "",
+      "reference": "CIS-style lockout policy (mapping TBD)"
+    },
+    {
+      "control_id": "LK-02",
+      "title": "Lockout duration is at least 15 minutes",
+      "severity": "medium",
+      "fact": "lockout.duration_minutes",
+      "operator": "gte",
+      "expected": 15,
+      "actual": 10,
+      "status": "FAIL",
+      "message": "expected gte 15, found 10",
+      "reference": "CIS-style lockout policy (mapping TBD)"
+    },
+    {
+      "control_id": "SSH-01",
+      "title": "SSH root login is disabled",
+      "severity": "high",
+      "fact": "ssh.permit_root_login",
+      "operator": "eq",
+      "expected": "no",
+      "actual": "yes",
+      "status": "FAIL",
+      "message": "expected eq 'no', found 'yes'",
+      "reference": "CIS-style SSH hardening (mapping TBD)"
+    },
+    {
+      "control_id": "SSH-02",
+      "title": "SSH max auth tries is 4 or fewer",
+      "severity": "medium",
+      "fact": "ssh.max_auth_tries",
+      "operator": "lte",
+      "expected": 4,
+      "actual": 6,
+      "status": "FAIL",
+      "message": "expected lte 4, found 6",
+      "reference": "CIS-style SSH hardening (mapping TBD)"
+    },
+    {
+      "control_id": "FS-01",
+      "title": "/etc/shadow is not world or group writable",
+      "severity": "high",
+      "fact": "file.etc_shadow.mode",
+      "operator": "in",
+      "expected": [
+        "0000",
+        "0400",
+        "0600",
+        "0640"
+      ],
+      "actual": null,
+      "status": "NOT_COLLECTED",
+      "message": "fact 'file.etc_shadow.mode' was not found on the target",
+      "reference": "CIS-style file permissions (mapping TBD)"
+    }
+  ]
+}

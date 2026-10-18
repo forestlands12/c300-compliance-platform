@@ -1,0 +1,74 @@
+$ python3 -m compliance_checker scan --platform linux --source samples/linux-web-01 --json-out evidence/linux-web-01.json
+
+Compliance report for linux-web-01 (linux)
+================================================================================================
+STATUS        ID         SEV      CONTROL                                     ACTUAL
+------------------------------------------------------------------------------------------------
+FAIL          LK-02      medium   Lockout duration is at least 15 minutes     10
+FAIL          PW-01      high     Minimum password length is at least 14      9
+FAIL          PW-02      medium   Maximum password age is 1 to 365 days       99999
+FAIL          PW-03      low      Minimum password age is at least 1 day      0
+FAIL          SSH-01     high     SSH root login is disabled                  'yes'
+FAIL          SSH-02     medium   SSH max auth tries is 4 or fewer            6
+NOT_COLLECTED FS-01      high     /etc/shadow is not world or group writable  None
+PASS          LK-01      high     Account lockout after 1 to 5 failed logins  3
+------------------------------------------------------------------------------------------------
+Checked 8 controls: 1 pass, 6 fail, 1 not collected, 0 error. Score (pass / assessed): 14.3%
+
+How to fix:
+  [PW-01] Set 'minlen = 14' in /etc/security/pwquality.conf (and PASS_MIN_LEN 14 in /etc/login.defs).
+  [PW-02] Set PASS_MAX_DAYS 365 (or lower) in /etc/login.defs.
+  [PW-03] Set PASS_MIN_DAYS 1 in /etc/login.defs.
+  [LK-02] Set 'unlock_time = 900' in /etc/security/faillock.conf.
+  [SSH-01] Set 'PermitRootLogin no' in /etc/ssh/sshd_config and reload sshd.
+  [SSH-02] Set 'MaxAuthTries 4' in /etc/ssh/sshd_config and reload sshd.
+
+JSON evidence written to evidence/linux-web-01.json
+exit code: 1
+
+$ python3 -m compliance_checker scan --platform windows --source samples/win-ws-01/secpol.inf --host win-ws-01 --json-out evidence/win-ws-01.json
+
+Compliance report for win-ws-01 (windows)
+================================================================================================
+STATUS        ID         SEV      CONTROL                                     ACTUAL
+------------------------------------------------------------------------------------------------
+FAIL          LK-01      high     Account lockout after 1 to 5 failed logins  0
+FAIL          PW-01      high     Minimum password length is at least 14      8
+NOT_COLLECTED LK-02      medium   Lockout duration is at least 15 minutes     None
+PASS          AC-01      high     Guest account is disabled                   False
+PASS          PW-02      medium   Maximum password age is 1 to 365 days       42
+PASS          PW-03      low      Minimum password age is at least 1 day      1
+PASS          PW-04      medium   Password history remembers at least 24      24
+PASS          PW-05      medium   Password complexity is enabled              True
+PASS          PW-06      high     Reversible password encryption is disabled  False
+------------------------------------------------------------------------------------------------
+Checked 9 controls: 6 pass, 2 fail, 1 not collected, 0 error. Score (pass / assessed): 75.0%
+
+How to fix:
+  [PW-01] Set 'Minimum password length' to 14 in Local Security Policy > Account Policies > Password Policy.
+  [LK-01] Set 'Account lockout threshold' to 5 or fewer, not 0.
+
+JSON evidence written to evidence/win-ws-01.json
+exit code: 1
+
+$ python3 -m compliance_checker scan --platform linux --source / --host build-container
+
+Compliance report for build-container (linux)
+================================================================================================
+STATUS        ID         SEV      CONTROL                                     ACTUAL
+------------------------------------------------------------------------------------------------
+FAIL          PW-02      medium   Maximum password age is 1 to 365 days       99999
+FAIL          PW-03      low      Minimum password age is at least 1 day      0
+NOT_COLLECTED LK-01      high     Account lockout after 1 to 5 failed logins  None
+NOT_COLLECTED LK-02      medium   Lockout duration is at least 15 minutes     None
+NOT_COLLECTED PW-01      high     Minimum password length is at least 14      None
+NOT_COLLECTED SSH-01     high     SSH root login is disabled                  None
+NOT_COLLECTED SSH-02     medium   SSH max auth tries is 4 or fewer            None
+PASS          FS-01      high     /etc/shadow is not world or group writable  '0640'
+------------------------------------------------------------------------------------------------
+Checked 8 controls: 1 pass, 2 fail, 5 not collected, 0 error. Score (pass / assessed): 33.3%
+
+How to fix:
+  [PW-02] Set PASS_MAX_DAYS 365 (or lower) in /etc/login.defs.
+  [PW-03] Set PASS_MIN_DAYS 1 in /etc/login.defs.
+exit code: 1

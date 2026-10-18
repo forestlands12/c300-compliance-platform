@@ -1,0 +1,5 @@
+# Sample sshd_config (fake data)
+Port 22
+PermitRootLogin yes
+#MaxAuthTries 6
+PasswordAuthentication yes

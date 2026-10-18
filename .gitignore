@@ -1,0 +1,36 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+# scan outputs from real machines may contain sensitive details
+reports/
+*.local.json
+~$*.xlsx
+~$*.docx
+.pytest_cache/
+.env
+
+# VM images and installers: far too big for Git, keep them on the desktop only
+*.iso
+*.img
+*.vdi
+*.vmdk
+*.vhd
+*.vhdx
+*.qcow2
+*.ova
+*.ovf
+*.vmem
+*.vmsn
+*.sav
+.vagrant/
+
+# Office and LibreOffice lock files
+.~lock.*#
+
+# OS and editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/

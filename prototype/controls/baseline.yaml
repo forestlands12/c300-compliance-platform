@@ -1,0 +1,160 @@
+# Generic security baseline (CIS-style) for the prototype.
+#
+# Placeholder until the team confirms the target standard with the supervisor
+# (e.g. CIS Benchmarks, a specific CIS level, or another framework). Thresholds
+# below follow commonly recommended CIS-style values but have NOT been mapped
+# to official benchmark item numbers yet: that mapping is a Phase 1 task.
+#
+# Each control checks ONE normalised fact (see compliance_checker/collectors.py).
+# Operators: eq, ne, gte, lte, between [low, high], in [..], not_in [..]
+#
+# TODO(Ahmad, T-05): map every control to the chosen standard's item number.
+# TODO(Ace, T-11): add Linux controls (auditd, firewall, unused services).
+# TODO(Jayen, T-11): add Windows controls (audit policy, firewall, SMBv1, RDP).
+
+controls:
+  - id: PW-01
+    title: Minimum password length is at least 14
+    platforms: [linux, windows]
+    fact: password.min_length
+    operator: gte
+    expected: 14
+    severity: high
+    rationale: Short passwords are quick to brute force.
+    remediation:
+      linux: Set 'minlen = 14' in /etc/security/pwquality.conf (and PASS_MIN_LEN 14 in /etc/login.defs).
+      windows: Set 'Minimum password length' to 14 in Local Security Policy > Account Policies > Password Policy.
+    reference: CIS-style password policy (mapping TBD)
+
+  - id: PW-02
+    title: Maximum password age is 1 to 365 days
+    platforms: [linux, windows]
+    fact: password.max_age_days
+    operator: between
+    expected: [1, 365]
+    severity: medium
+    rationale: Passwords that never expire stay valid after a silent compromise.
+    remediation:
+      linux: Set PASS_MAX_DAYS 365 (or lower) in /etc/login.defs.
+      windows: Set 'Maximum password age' to 365 or fewer days, not 0.
+    reference: CIS-style password policy (mapping TBD)
+
+  - id: PW-03
+    title: Minimum password age is at least 1 day
+    platforms: [linux, windows]
+    fact: password.min_age_days
+    operator: gte
+    expected: 1
+    severity: low
+    rationale: Stops users cycling straight back to an old password.
+    remediation:
+      linux: Set PASS_MIN_DAYS 1 in /etc/login.defs.
+      windows: Set 'Minimum password age' to 1 or more days.
+    reference: CIS-style password policy (mapping TBD)
+
+  - id: PW-04
+    title: Password history remembers at least 24
+    platforms: [windows]
+    fact: password.history_size
+    operator: gte
+    expected: 24
+    severity: medium
+    rationale: Prevents password reuse.
+    remediation:
+      windows: Set 'Enforce password history' to 24 or more.
+    reference: CIS-style password policy (mapping TBD)
+
+  - id: PW-05
+    title: Password complexity is enabled
+    platforms: [windows]
+    fact: password.complexity_enabled
+    operator: eq
+    expected: true
+    severity: medium
+    remediation:
+      windows: Enable 'Password must meet complexity requirements'.
+    reference: CIS-style password policy (mapping TBD)
+
+  - id: PW-06
+    title: Reversible password encryption is disabled
+    platforms: [windows]
+    fact: password.reversible_encryption
+    operator: eq
+    expected: false
+    severity: high
+    rationale: Reversible encryption is close to storing passwords in plain text.
+    remediation:
+      windows: Disable 'Store passwords using reversible encryption'.
+    reference: CIS-style password policy (mapping TBD)
+
+  - id: LK-01
+    title: Account lockout after 1 to 5 failed logins
+    platforms: [linux, windows]
+    fact: lockout.threshold
+    operator: between
+    expected: [1, 5]
+    severity: high
+    rationale: Without lockout, online password guessing is unlimited.
+    remediation:
+      linux: Set 'deny = 5' in /etc/security/faillock.conf and enable pam_faillock.
+      windows: Set 'Account lockout threshold' to 5 or fewer, not 0.
+    reference: CIS-style lockout policy (mapping TBD)
+
+  - id: LK-02
+    title: Lockout duration is at least 15 minutes
+    platforms: [linux, windows]
+    fact: lockout.duration_minutes
+    operator: gte
+    expected: 15
+    severity: medium
+    remediation:
+      linux: Set 'unlock_time = 900' in /etc/security/faillock.conf.
+      windows: Set 'Account lockout duration' to 15 minutes or more.
+    reference: CIS-style lockout policy (mapping TBD)
+
+  - id: AC-01
+    title: Guest account is disabled
+    platforms: [windows]
+    fact: account.guest_enabled
+    operator: eq
+    expected: false
+    severity: high
+    remediation:
+      # FIX(B-01, 8 Oct 2026, Ahmad): YAML failed to load because the text
+      # contained "Accounts: Guest..." and an unquoted colon starts a new key.
+      # Resolved by quoting the whole value. Lesson: quote any text with ":".
+      windows: "Set 'Accounts: Guest account status' to Disabled."
+    reference: CIS-style account policy (mapping TBD)
+
+  - id: SSH-01
+    title: SSH root login is disabled
+    platforms: [linux]
+    fact: ssh.permit_root_login
+    operator: eq
+    expected: "no"
+    severity: high
+    remediation:
+      linux: Set 'PermitRootLogin no' in /etc/ssh/sshd_config and reload sshd.
+    reference: CIS-style SSH hardening (mapping TBD)
+
+  - id: SSH-02
+    title: SSH max auth tries is 4 or fewer
+    platforms: [linux]
+    fact: ssh.max_auth_tries
+    operator: lte
+    expected: 4
+    severity: medium
+    remediation:
+      linux: Set 'MaxAuthTries 4' in /etc/ssh/sshd_config and reload sshd.
+    reference: CIS-style SSH hardening (mapping TBD)
+
+  - id: FS-01
+    title: /etc/shadow is not world or group writable
+    platforms: [linux]
+    fact: file.etc_shadow.mode
+    operator: in
+    expected: ["0000", "0400", "0600", "0640"]
+    severity: high
+    remediation:
+      linux: Run 'chmod 0640 /etc/shadow' (or 0000 on RHEL-family systems).
+    reference: CIS-style file permissions (mapping TBD)

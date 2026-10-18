@@ -1,0 +1,6 @@
+# Sample snapshot of a deliberately weak Ubuntu web server (fake data).
+MAIL_DIR        /var/mail
+PASS_MAX_DAYS   99999
+PASS_MIN_DAYS   0
+PASS_WARN_AGE   7
+UMASK           022
