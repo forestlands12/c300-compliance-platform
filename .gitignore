@@ -34,3 +34,6 @@ reports/
 Thumbs.db
 desktop.ini
 .idea/
+
+# scanner history database and demo working copies (show weaknesses of scanned hosts)
+prototype/data/

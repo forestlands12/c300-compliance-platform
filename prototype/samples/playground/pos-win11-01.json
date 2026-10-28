@@ -1,0 +1,41 @@
+{
+  "_note": "Demo collector output (fake data). Same shape as collect_windows.ps1 output. Cashier / POS PC at the store counter.",
+  "secpol": {
+    "inf": "[Unicode]\r\nUnicode=yes\r\n[System Access]\r\nMinimumPasswordAge = 1\r\nMaximumPasswordAge = 90\r\nMinimumPasswordLength = 14\r\nPasswordComplexity = 1\r\nPasswordHistorySize = 24\r\nLockoutBadCount = 5\r\nResetLockoutCount = 15\r\nLockoutDuration = 15\r\nRequireLogonToChangePassword = 0\r\nForceLogoffWhenHourExpire = 0\r\nNewAdministratorName = \"Administrator\"\r\nNewGuestName = \"Guest\"\r\nClearTextPassword = 0\r\nLSAAnonymousNameLookup = 0\r\nEnableAdminAccount = 0\r\nEnableGuestAccount = 0\r\n[Version]\r\nsignature=\"$CHICAGO$\"\r\nRevision=1\r\n"
+  },
+  "firewall": {
+    "profiles": {
+      "Domain": true,
+      "Private": true,
+      "Public": true
+    }
+  },
+  "defender": {
+    "antivirus_enabled": true,
+    "realtime_enabled": true,
+    "signature_age_days": 1
+  },
+  "system": {
+    "smb1": false,
+    "rdp_deny": 1,
+    "rdp_nla": 1,
+    "uac_lua": 1,
+    "inactivity_secs": 600,
+    "autorun": 145,
+    "au_disabled": null
+  },
+  "audit": {
+    "logon_inclusion": "Success and Failure",
+    "logon_value": "3"
+  },
+  "bitlocker": {
+    "protection": "Off"
+  },
+  "patches": {
+    "last_patch_days": 12,
+    "last_kb": "KB5066835",
+    "os_caption": "Microsoft Windows 11 Pro",
+    "os_build": "10.0.26100.0",
+    "hostname": "POS-WIN11-01"
+  }
+}

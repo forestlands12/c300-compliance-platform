@@ -1,0 +1,15 @@
+# Demo storefront site (fake data)
+server {
+	listen 80;
+	server_name shop.lab.local;
+	return 301 https://$host$request_uri;
+}
+server {
+	listen 443 ssl;
+	server_name shop.lab.local;
+	ssl_certificate     /etc/ssl/certs/shop-lab.crt;
+	ssl_certificate_key /etc/ssl/private/shop-lab.key;
+	root /var/www/shop;
+	index index.php index.html;
+	location / { try_files $uri $uri/ /index.php?$args; }
+}

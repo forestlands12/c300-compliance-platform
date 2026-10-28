@@ -1,0 +1,4 @@
+# Demo snapshot (fake data)
+PermitRootLogin no
+MaxAuthTries 3
+PasswordAuthentication no

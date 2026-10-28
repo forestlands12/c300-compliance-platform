@@ -1,0 +1,51 @@
+# Real playground on VMware. Copy to playground.yaml and fill in the addresses.
+# SECURITY: never put a password in this file. Each password_env names an
+# ENVIRONMENT VARIABLE you set in the terminal before starting the scanner, e.g.
+#   PowerShell:  $env:CC_WIN_PASS = Read-Host -AsSecureString | ConvertFrom-SecureString -AsPlainText
+#   bash:        read -rs CC_SSH_PASS && export CC_SSH_PASS
+# (or use an SSH key with key_file and no password at all, which is better).
+organisation: SME Supermarket
+environment: VMware playground
+
+hosts:
+  - name: SHOP-WEB-01
+    role: Online shop web server (nginx)
+    kind: web
+    platform: linux
+    services: [nginx]
+    transport: ssh
+    address: 192.168.56.10        # TODO(Ace, T-09): real host-only IP of the Ubuntu VM
+    username: scanner              # a normal user with passwordless sudo for read-only commands
+    key_file: ~/.ssh/c300_scanner  # ssh-keygen -t ed25519 -f ~/.ssh/c300_scanner
+    sudo: true                     # needed to read sshd -T, /etc/shadow mode, ufw state
+    accept_unknown_host_key: false # first connect once with plain `ssh` to add it to known_hosts
+
+  - name: SHOP-DB-01
+    role: Customer and order database (MariaDB)
+    kind: db
+    platform: linux
+    services: [mysql]
+    transport: ssh
+    address: 192.168.56.11
+    username: scanner
+    key_file: ~/.ssh/c300_scanner
+    sudo: true
+
+  - name: POS-WIN11-01
+    role: Cashier PC at the counter
+    kind: pos
+    platform: windows
+    transport: winrm
+    address: 192.168.56.20         # TODO(Jayen, T-10): real IP; run Enable-PSRemoting -Force on the VM
+    username: scanner              # local administrator account on the VM
+    password_env: CC_WIN_PASS
+    use_https: false               # lab only; HTTPS (5986) with a certificate is better (T-21)
+
+  - name: OFFICE-WIN11-01
+    role: Back-office PC (orders, rosters, email)
+    kind: office
+    platform: windows
+    transport: winrm
+    address: 192.168.56.21
+    username: scanner
+    password_env: CC_WIN_PASS

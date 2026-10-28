@@ -31,9 +31,16 @@ class Control:
     rationale: str = ""
     remediation: dict[str, str] = field(default_factory=dict)
     reference: str = ""
+    # WHY: domain and frameworks feed the dashboard (domain scores, framework compliance).
+    domain: str = "general"
+    frameworks: dict[str, str] = field(default_factory=dict)
 
-    def applies_to(self, platform: str) -> bool:
-        return platform in self.platforms
+    # WHAT: Does this control apply to a host?
+    # WHY: a host has one OS platform plus the services it runs (nginx, mysql), so
+    # a web-server control applies only to hosts that actually run nginx.
+    def applies_to(self, platform: str | set[str] | frozenset[str]) -> bool:
+        tags = {platform} if isinstance(platform, str) else set(platform)
+        return bool(tags & set(self.platforms))
 
 
 # WHAT: The outcome of checking one Control against one host.
@@ -56,4 +63,7 @@ class Result:
             "status": self.status.value,
             "message": self.message,
             "reference": self.control.reference,
+            "domain": self.control.domain,
+            "frameworks": dict(self.control.frameworks),
+            "remediation": dict(self.control.remediation),
         }
