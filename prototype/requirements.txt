@@ -1,1 +1,6 @@
 PyYAML>=6.0
+Flask>=3.0          # dashboard (python -m compliance_checker dashboard)
+
+# Only needed to scan real VMs over the network (not for the demo):
+# paramiko>=3.4     # SSH to the Linux VMs
+# pywinrm>=0.4      # WinRM to the Windows 11 VMs

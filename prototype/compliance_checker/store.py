@@ -114,6 +114,11 @@ class Store:
             return [dict(r) for r in db.execute(
                 "SELECT * FROM host_scans WHERE run_id=? ORDER BY host", (run_id,))]
 
+    def host_scan(self, host_scan_id: int) -> dict[str, Any] | None:
+        with closing(self._db()) as db:
+            row = db.execute("SELECT * FROM host_scans WHERE id=?", (host_scan_id,)).fetchone()
+        return dict(row) if row else None
+
     def results(self, host_scan_id: int) -> list[dict[str, Any]]:
         with closing(self._db()) as db:
             return [json.loads(r["data"]) for r in db.execute(

@@ -15,6 +15,7 @@ from typing import Any
 
 from flask import Flask, abort, jsonify, render_template, request
 
+from ..assistant import Assistant
 from ..engine import run_scan
 from ..inventory import Inventory, load_inventory
 from ..models import Control
@@ -37,9 +38,11 @@ class ScanState:
                 "last_run_id": self.last_run_id, "error": self.error}
 
 
-def create_app(inventory: Inventory, controls: list[Control], store: Store) -> Flask:
+def create_app(inventory: Inventory, controls: list[Control], store: Store,
+               assistant: Assistant | None = None) -> Flask:
     app = Flask(__name__)
     state = ScanState()
+    assistant = assistant or Assistant()
     # SECURITY: any web page you visit could try to POST to localhost:8300 and start
     # scans (cross-site request forgery). Each POST must carry this random token,
     # which only our own page knows. A new token is made every time the server starts.
@@ -103,6 +106,28 @@ def create_app(inventory: Inventory, controls: list[Control], store: Store) -> F
         if hs is None:
             return jsonify({"ok": False, "reason": "no successful scan of this host yet"}), 404
         return jsonify({"ok": True, "host_scan_id": hs})
+
+    @app.get("/api/assistant")
+    def assistant_status():
+        return jsonify(assistant.status())
+
+    # WHAT: Explain one failed check in plain English (AI model if configured, else offline).
+    # SECURITY: the browser sends only ids; the check itself is read from our own store,
+    # so a page cannot make us send arbitrary text to the AI provider.
+    @app.post("/api/explain")
+    def explain():
+        require_token()
+        body = request.get_json(silent=True) or {}
+        try:
+            hs_id = int(body.get("host_scan_id"))
+        except (TypeError, ValueError):
+            abort(400)
+        hs = store.host_scan(hs_id)
+        row = next((r for r in store.results(hs_id) if r["control_id"] == body.get("control_id")),
+                   None) if hs else None
+        if row is None:
+            abort(404)
+        return jsonify(assistant.explain(row, hs["platform"], hs.get("role", "")))
 
     # WHAT: Full evidence of one run as JSON (for the report appendix).
     @app.get("/api/runs/<int:run_id>/evidence.json")

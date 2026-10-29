@@ -77,10 +77,11 @@ function renderFailures(rows) {
       <td>${esc(r.control_id)} · ${esc(r.title)}</td><td>${sev(r.severity)}</td></tr>
     <tr class="detail" data-for="${i}" hidden><td colspan="3">
       Found <b class="mono">${esc(show(r.actual))}</b>, expected ${esc(r.operator)} <b class="mono">${esc(show(r.expected))}</b><br>
-      <b>Fix:</b> ${esc(r.fix)}</td></tr>`).join("");
+      <b>Fix:</b> ${esc(r.fix)}<br>${explainButton(r.host_scan_id, r.control_id)}</td></tr>`).join("");
   t.querySelectorAll("tr.row").forEach((tr) => tr.addEventListener("click", () => {
     const d = t.querySelector(`tr.detail[data-for="${tr.dataset.i}"]`); d.hidden = !d.hidden;
   }));
+  wireExplain(t);
 }
 
 function renderHosts(hosts) {
@@ -101,8 +102,13 @@ function renderDomains(domains) {
 }
 
 function renderDrift(rows, hosts) {
-  const against = [...new Set(hosts.map((h) => h.drift_against).filter(Boolean))];
-  $("driftNote").textContent = against.length ? `compared with each host's ${against.join(" / ")}` : "";
+  // WHY: say plainly what each host was compared with, so "no drift" is never misread.
+  const n = (k) => hosts.filter((h) => h.drift_against === k).length;
+  const parts = [];
+  if (n("baseline")) parts.push(`${n("baseline")} host${n("baseline") > 1 ? "s" : ""} vs baseline`);
+  if (n("previous scan")) parts.push(`${n("previous scan")} vs previous scan`);
+  if (n("is baseline")) parts.push(`${n("is baseline")} just baselined`);
+  $("driftNote").textContent = parts.join(" · ");
   const t = $("drift");
   if (!rows.length) {
     t.innerHTML = `<tr class="empty-row"><td>No drift: every host matches its baseline${hosts.some((h) => h.drift_against) ? "" : " (scan again after a change to compare)"}.</td></tr>`;
@@ -169,6 +175,38 @@ async function load() {
   render(await r.json());
 }
 
+// ---------------------------------------------------------------- AI assistant (optional)
+const explainButton = (hsId, controlId) =>
+  `<button class="btn ghost small explain-btn" type="button" data-hs="${esc(hsId)}" data-ctl="${esc(controlId)}">Explain this</button>`;
+function wireExplain(root) {
+  root.querySelectorAll(".explain-btn").forEach((b) => b.addEventListener("click", async (e) => {
+    e.stopPropagation();  // WHY: the button sits inside a clickable row; don't collapse it
+    let box = b.nextElementSibling;
+    if (!box || !box.classList.contains("explain")) { box = document.createElement("div"); box.className = "explain"; b.after(box); }
+    b.disabled = true; box.textContent = "Thinking…";
+    try {
+      const r = await fetch("/api/explain", { method: "POST",
+        headers: { "Content-Type": "application/json", "X-CC-Token": window.CC_TOKEN },
+        body: JSON.stringify({ host_scan_id: Number(b.dataset.hs), control_id: b.dataset.ctl }) });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const a = await r.json();
+      // SECURITY: model output is untrusted text. textContent, never innerHTML.
+      box.textContent = a.text;
+      const src = document.createElement("span"); src.className = "src";
+      src.textContent = a.source === "model" ? `AI model: ${a.model}${a.cached ? " (cached)" : ` · ${a.seconds}s`}`
+        : `Built-in explanation from the baseline${a.note ? ` · ${a.note}` : ""}`;
+      box.appendChild(src);
+    } catch (err) {
+      box.textContent = `Could not get an explanation (${err.message}).`;
+    } finally { b.disabled = false; }
+  }));
+}
+fetch("/api/assistant").then((r) => r.json()).then((a) => {
+  const c = $("aiChip");
+  c.textContent = a.enabled ? `AI: ${a.model}` : "AI: offline";
+  c.classList.toggle("ai-model", a.enabled);
+}).catch(() => {});
+
 // ---------------------------------------------------------------- host drawer
 let drawerHost = null, drawerRows = [], drawerFilter = "all";
 async function openHost(name) {
@@ -191,8 +229,9 @@ function renderDrawer() {
   $("drawerTable").innerHTML = drawerHost.error ? `<tr class="empty-row"><td>${esc(drawerHost.error)}</td></tr>` :
     `<tr><th>Status</th><th>Check</th><th>Found</th><th>Expected</th></tr>` + rows.map((r) => `
     <tr><td class="st ${r.status}">${r.status.replace("_", " ")}</td>
-      <td>${esc(r.control_id)} · ${esc(r.title)} ${sev(r.severity)}${r.status === "FAIL" ? `<div class="muted">Fix: ${esc((r.remediation || {})[drawerHost.platform] || Object.values(r.remediation || {})[0] || "")}</div>` : ""}</td>
+      <td>${esc(r.control_id)} · ${esc(r.title)} ${sev(r.severity)}${r.status === "FAIL" ? `<div class="muted">Fix: ${esc((r.remediation || {})[drawerHost.platform] || Object.values(r.remediation || {})[0] || "")}</div>${explainButton(drawerHost.host_scan_id, r.control_id)}` : ""}</td>
       <td class="mono">${esc(show(r.actual))}</td><td class="mono">${esc(r.operator)} ${esc(show(r.expected))}</td></tr>`).join("");
+  wireExplain($("drawerTable"));
 }
 function closeDrawer() { $("drawer").hidden = $("scrim").hidden = true; }
 

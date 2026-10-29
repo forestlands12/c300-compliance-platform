@@ -154,7 +154,8 @@ def build_summary(store, organisation: str = "", environment: str = "") -> dict[
             "drift_worse": sum(c["direction"] == "worse" for c in changes),
         })
         for r in results:
-            row = {**r, "host": hs["host"], "fix": remediation_for(r, hs["platform"])}
+            row = {**r, "host": hs["host"], "host_scan_id": hs["id"],
+                   "fix": remediation_for(r, hs["platform"])}
             if r["status"] == "FAIL":
                 failures.append(row)
             elif r["status"] in ("NOT_COLLECTED", "ERROR"):

@@ -54,6 +54,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="write collect_windows.ps1 for offline Windows collection")
     ex.add_argument("--out", default="collect_windows.ps1")
 
+    sub.add_parser("ai-test", help="check the optional AI assistant settings and connection "
+                                   "(run on school wifi or VPN)")
+
     args = p.parse_args(argv)
     if args.command != "scan":
         return _run_command(args)
@@ -109,6 +112,11 @@ def _run_command(args) -> int:
                 print(f"  - {line}")
             print("Now run a scan (dashboard button or scan-all) to see it caught.")
         return 0
+    if args.command == "ai-test":
+        from .assistant import self_test
+        ok, msg = self_test()
+        print(msg)
+        return 0 if ok else 1
     if args.command == "export-windows-script":
         from .windows_ps import offline_script
         # WHY: utf-8-sig, because Windows PowerShell 5.1 misreads UTF-8 without a BOM.

@@ -55,7 +55,11 @@ main { max-width: 1440px; margin: 0 auto; padding: 22px 28px 8px; display: grid;
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; }
 .card.empty { text-align: center; padding: 60px 20px; }
 .card.empty p { color: var(--muted); max-width: 560px; margin: 0 auto; }
-.grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.grid.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
+/* FIX(B-05, 29 Oct 2026, Claude): on a phone the page scrolled sideways (495px wide
+   on a 390px screen). Grid items default to min-width: auto, so the trend chart and
+   tables forced their column wider than the screen. min-width: 0 lets them shrink. */
+main > *, .grid.two > *, .posture > * { min-width: 0; }
 .panel-title { font-weight: 600; margin-bottom: 10px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 
 /* posture */
@@ -119,6 +123,11 @@ table.list { width: 100%; border-collapse: collapse; }
 .fw .line b { color: var(--text); }
 .stack { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 10px; background: var(--track); }
 
+/* FIX(B-04, 29 Oct 2026, Claude): the host drawer showed on page load and blocked
+   clicks, because ".drawer { display: flex }" beat the browser's default for the
+   hidden attribute. Make hidden always win, for every element. */
+[hidden] { display: none !important; }
+
 /* drawer */
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 8; }
 .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(760px, 100%); background: var(--card); border-left: 1px solid var(--line);
@@ -135,7 +144,7 @@ table.list { width: 100%; border-collapse: collapse; }
 .foot { text-align: center; color: var(--faint); font-size: 11px; padding: 18px; }
 
 @media (max-width: 1000px) {
-  .grid.two, .frameworks { grid-template-columns: 1fr; }
+  .grid.two, .frameworks { grid-template-columns: minmax(0, 1fr); }
   .topbar { flex-direction: column; align-items: stretch; padding: 12px 16px; }
   .actions { justify-content: space-between; }
   main { padding: 16px; }
@@ -145,3 +154,10 @@ table.list { width: 100%; border-collapse: collapse; }
   .kpis { grid-template-columns: repeat(2, 1fr); }
   .bar { grid-template-columns: 22px 1fr 44px 70px; }
 }
+
+/* AI assistant explanations (plain text, so pre-wrap keeps its line breaks) */
+.explain-btn { margin-top: 8px; }
+.explain { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 8px; background: var(--panel); color: var(--text); white-space: pre-wrap; font-size: 13px; line-height: 1.5; }
+.explain .src { display: block; margin-top: 6px; color: var(--faint); font-size: 11px; }
+.chip.ai-model { color: var(--accent); border-color: var(--accent); }

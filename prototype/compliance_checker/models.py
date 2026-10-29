@@ -66,4 +66,5 @@ class Result:
             "domain": self.control.domain,
             "frameworks": dict(self.control.frameworks),
             "remediation": dict(self.control.remediation),
+            "rationale": self.control.rationale,
         }
