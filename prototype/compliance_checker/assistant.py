@@ -101,7 +101,9 @@ def offline_explanation(result: dict, platform: str, role: str = "") -> str:
     fix = rem.get(platform) or next(iter(rem.values()), "See the control definition.")
     rationale = result.get("rationale") or ""
     found, expected = _show(result.get("actual")), _show(result.get("expected"))
-    where = f" on the {role.lower()}" if role else ""
+    # FIX(B-07, 29 Oct 2026, Claude): role.lower() turned "Back-office PC" into "back-office pc".
+    # Lower-case only the first letter so names like PC and MariaDB keep their case.
+    where = f" on the {role[:1].lower()}{role[1:]}" if role else ""
     lines = [
         "What this means",
         f"The check \"{result.get('title', result.get('control_id'))}\" failed{where}. "

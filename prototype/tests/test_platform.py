@@ -164,8 +164,9 @@ class AssistantTests(unittest.TestCase):
                     "rationale": "A database open to every network is easier to attack."}
 
     def test_offline_when_not_configured(self):
-        a = Assistant(AIConfig()).explain(self.row, "linux", "Customer database")
+        a = Assistant(AIConfig()).explain(self.row, "linux", "Customer database (MariaDB)")
         self.assertEqual(a["source"], "offline")
+        self.assertIn("on the customer database (MariaDB)", a["text"])  # B-07: keep the name's case
         self.assertIn("How to fix it", a["text"])
         self.assertIn("bind-address", a["text"])
         self.assertEqual(FakeAI.requests, [])

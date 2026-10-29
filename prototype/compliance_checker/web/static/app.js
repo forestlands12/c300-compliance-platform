@@ -57,7 +57,10 @@ function trendChart(points) {
   const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(p.score).toFixed(1)}`).join(" ");
   const area = `${line} L${x(pts.length - 1)} ${y(0)} L${x(0)} ${y(0)} Z`;
   const step = Math.max(1, Math.ceil(pts.length / 8));
-  const labels = pts.map((p, i) => (i % step === 0 || i === pts.length - 1) ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" fill="#5d606b" font-size="10">${esc(shortDate(p.at))}</text>` : "").join("");
+  // FIX(B-06, 29 Oct 2026, Claude): the last date was centred on the chart's right edge,
+  // so half of it was cut off ("Oct 2" for "Oct 26"). Anchor the end labels inwards.
+  const anchor = (i) => (i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle");
+  const labels = pts.map((p, i) => (i % step === 0 || i === pts.length - 1) ? `<text x="${x(i)}" y="${H - 6}" text-anchor="${anchor(i)}" fill="#5d606b" font-size="10">${esc(shortDate(p.at))}</text>` : "").join("");
   const dots = pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.score)}" r="3.5" fill="${p.trigger === "scheduled" ? "#5b8cff" : "#e7e8ec"}"><title>Scan #${p.run_id} · ${esc(when(p.at))} · ${esc(p.trigger)} · ${fmtPct(p.score)}</title></circle>`).join("");
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Score trend">
     <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#5b8cff" stop-opacity=".45"/><stop offset="1" stop-color="#5b8cff" stop-opacity="0"/></linearGradient></defs>
