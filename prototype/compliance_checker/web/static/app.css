@@ -161,3 +161,8 @@ table.list { width: 100%; border-collapse: collapse; }
   border-radius: 8px; background: var(--panel); color: var(--text); white-space: pre-wrap; font-size: 13px; line-height: 1.5; }
 .explain .src { display: block; margin-top: 6px; color: var(--faint); font-size: 11px; }
 .chip.ai-model { color: var(--accent); border-color: var(--accent); }
+
+/* WHAT: the low-coverage warning above the recommendation (B-08). Amber, not red:
+   it is not a failure, it means we could not read enough to judge the machine. */
+.callout.caution { border-left-color: var(--warn); }
+.callout.caution svg { color: var(--warn); }

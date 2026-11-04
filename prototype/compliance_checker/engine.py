@@ -16,12 +16,36 @@ from .models import Control
 from .targets import TargetError
 
 
+# WHY: a benchmark catalogue is read once per process, not once per scan.
+_BENCHMARKS: dict[str, Any] = {}
+
+
+def benchmark_for(host: Host):
+    from .script_scan import load_benchmark
+    if host.benchmark not in _BENCHMARKS:
+        _BENCHMARKS[host.benchmark] = load_benchmark(host.benchmark)
+    return _BENCHMARKS[host.benchmark]
+
+
 # WHAT: Scan one host. Never raises: an unreachable host becomes an error row.
 def scan_host(host: Host, controls: list[Control]) -> tuple[list[dict[str, Any]], str | None]:
     try:
         target = host.open()
     except TargetError as exc:
         return [], str(exc)
+    # WHAT: hosts checked by a shell scanner (scanner: script in the inventory).
+    # WHY: for Ubuntu the team's own fyp-scan.sh is the agreed source of truth for
+    # the 42 CIS rules, so the platform runs it instead of re-implementing them.
+    if host.scanner == "script":
+        from .script_scan import run_script_scan
+        try:
+            results, error = run_script_scan(target, benchmark_for(host), host.script,
+                                            remote_script=host.remote_script)
+        except Exception as exc:
+            return [], f"script scan crashed: {type(exc).__name__}: {exc}"
+        finally:
+            target.close()
+        return [r.to_dict() for r in results], error
     try:
         facts = collect_host(host.platform, target, host.services)
     except TargetError as exc:

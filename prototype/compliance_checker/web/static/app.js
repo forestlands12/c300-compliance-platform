@@ -32,7 +32,9 @@ const icon = (k) => `<svg class="kicon" viewBox="0 0 24 24" fill="none" stroke="
 let SUMMARY = null;
 
 // ---------------------------------------------------------------- charts (SVG)
-function gauge(score, delta) {
+// FIX(B-08): when almost nothing could be read, the arc is grey, not a confident
+// green: the number is still shown, but it is not evidence of a healthy machine.
+function gauge(score, delta, lowCoverage) {
   const r = 62, cx = 85, cy = 80, start = Math.PI * 0.85, end = Math.PI * 2.15;
   const pt = (a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
   const arc = (a0, a1) => { const [x0, y0] = pt(a0), [x1, y1] = pt(a1); return `M${x0} ${y0} A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1} ${y1}`; };
@@ -41,7 +43,7 @@ function gauge(score, delta) {
     `<div class="delta ${delta > 0 ? "up" : delta < 0 ? "down" : ""}">${delta > 0 ? "▲" : delta < 0 ? "▼" : "■"} ${delta > 0 ? "+" : ""}${delta} pts since last scan</div>`;
   return `<svg viewBox="0 0 170 130" role="img" aria-label="Posture score ${fmtPct(score)}">
     <path d="${arc(start, end)}" stroke="#2a2b33" stroke-width="12" fill="none" stroke-linecap="round"/>
-    ${score === null ? "" : `<path d="${arc(start, a)}" stroke="${scoreColor(score)}" stroke-width="12" fill="none" stroke-linecap="round"/>`}
+    ${score === null ? "" : `<path d="${arc(start, a)}" stroke="${lowCoverage ? "var(--faint)" : scoreColor(score)}" stroke-width="12" fill="none" stroke-linecap="round"/>`}
     <text x="85" y="86" text-anchor="middle" fill="#e7e8ec" font-size="30" font-weight="600">${fmtPct(score)}</text>
     <text x="85" y="106" text-anchor="middle" fill="#8d909b" font-size="11">posture score</text></svg>${d}`;
 }
@@ -74,7 +76,14 @@ const hostIcon = (name) => { const h = (SUMMARY.hosts || []).find((x) => x.name 
 // ---------------------------------------------------------------- panels
 function renderFailures(rows) {
   const t = $("failures");
-  if (!rows.length) { t.innerHTML = `<tr class="empty-row"><td>No failing checks. Nice.</td></tr>`; return; }
+  if (!rows.length) {
+    // WHY: "nothing failed" after a scan that read almost nothing is not good news.
+    const low = (SUMMARY.coverage || {}).low;
+    t.innerHTML = `<tr class="empty-row"><td>${low
+      ? "Nothing failed among the few checks that could be made."
+      : "No failing checks. Nice."}</td></tr>`;
+    return;
+  }
   t.innerHTML = `<tr><th>Host</th><th>Check</th><th>Severity</th></tr>` + rows.map((r, i) => `
     <tr class="row" data-i="${i}"><td><div class="hostcell">${hostIcon(r.host)}${esc(r.host)}</div></td>
       <td>${esc(r.control_id)} · ${esc(r.title)}</td><td>${sev(r.severity)}</td></tr>
@@ -90,9 +99,10 @@ function renderFailures(rows) {
 function renderHosts(hosts) {
   $("hosts").innerHTML = hosts.map((h) => `
     <div class="bar click" data-host="${esc(h.name)}">${icon(h.kind)}
-      <div class="name"><div>${esc(h.name)}</div><span class="muted">${esc(h.role)} · ${esc(h.platform)} via ${esc(h.transport)}</span></div>
+      <div class="name"><div>${esc(h.name)}</div><span class="muted">${esc(h.role)} · ${esc(h.platform)} via ${esc(h.transport)}${
+        (h.coverage || {}).low ? ` · only ${h.coverage.assessed} of ${h.coverage.total} checks could be made` : ""}</span></div>
       ${h.error ? `<div class="pct" style="color:var(--bad)">–</div><div class="muted">unreachable</div><div class="err">${esc(h.error)}</div>`
-        : `<div class="pct" style="color:${scoreColor(h.score)}">${fmtPct(h.score)}</div>${bar(h.score)}`}
+        : `<div class="pct" style="color:${(h.coverage || {}).low ? "var(--faint)" : scoreColor(h.score)}">${fmtPct(h.score)}</div>${bar(h.score)}`}
     </div>`).join("");
   $("hosts").querySelectorAll(".bar").forEach((el) => el.addEventListener("click", () => openHost(el.dataset.host)));
 }
@@ -153,13 +163,24 @@ function render(s) {
   if (!s.has_data) return;
   $("lastScan").innerHTML = `Last scan ${esc(when(s.run.started_at))}<br><span>${esc(s.run.trigger)} · ${s.hosts.length} hosts · ${s.controls_total} controls</span>`;
   const ev = $("evidenceLink"); ev.hidden = false; ev.href = `/api/runs/${s.run.id}/evidence.json`;
-  $("gauge").innerHTML = gauge(s.score, s.delta);
+  $("gauge").innerHTML = gauge(s.score, s.delta, (s.coverage || {}).low);
   $("trend").innerHTML = trendChart(s.trend);
   $("trendNote").textContent = `last ${s.trend.length} scans · blue dots are scheduled scans`;
   const c = s.counts;
   $("kpis").innerHTML = [
     [c.PASS, "Passed"], [c.FAIL, "Failed"], [c.NOT_COLLECTED + c.ERROR, "Not checked"], [fmtPct(s.pass_rate), "Plain pass rate"],
   ].map(([v, l]) => `<div class="kpi"><div class="v">${esc(v)}</div><div class="l">${esc(l)}</div></div>`).join("");
+  // FIX(B-08, 4 Nov 2026, Claude): a scan that could read almost nothing showed a
+  // confident gauge (100% from one check on a real VM). Warn above the recommendation.
+  const cov = s.coverage || {};
+  const warn = $("coverageWarning");
+  if (warn) {
+    warn.hidden = !cov.low;
+    warn.innerHTML = cov.low
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+      <div><b style="color:var(--text)">Read this score with care</b><br>Only <b>${cov.assessed}</b> of ${cov.total} checks could be made (${fmtPct(cov.percent)} coverage). The score uses those ${cov.assessed} alone. See <i>Could not check</i> below for why.</div>`
+      : "";
+  }
   const rec = s.recommendation;
   $("recommendation").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3Z"/></svg>
     <div><b style="color:var(--text)">Recommendation</b><br>${rec.high_failures

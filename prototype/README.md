@@ -46,10 +46,32 @@ Click a failing check, or a host, then **Explain this** for a plain-English expl
 | `scan --platform linux\|windows --source PATH` | v0.1 single-host scan, prints a table |
 | `export-windows-script` | Writes `collect_windows.ps1` for collecting from a Windows PC with no network access |
 | `ai-test` | Checks the AI assistant settings and connection |
+| `script-check` | Checks `scripts/fyp-scan.sh` against `controls/cis-ubuntu-24.04.yaml`, so the script and its risk ratings never drift apart |
 
 Add `--inventory inventory/playground.yaml` to `dashboard`, `scan-all` and
 `baseline` to use real VMs instead of the demo. Exit codes of `scan-all`:
 `0` no failures, `1` at least one failed check.
+
+## Two ways a machine is checked
+
+| `scanner:` in the inventory | What runs | Rules |
+|---|---|---|
+| `builtin` (default) | our Python collectors | `controls/baseline.yaml` (35 generic CIS-style checks) |
+| `script` | a shell scanner **on the machine**, read-only | its own catalogue, e.g. `controls/cis-ubuntu-24.04.yaml` |
+
+For Ubuntu the team uses the second one: `scripts/fyp-scan.sh` (Ace) checks the 42
+CIS Ubuntu 24.04 v1.0.0 rules the team kept, using the audit method from the CIS
+PDF. The platform copies it to the VM, runs it, and turns each line into a normal
+result, so the rules are never written twice and cannot disagree. The risk rating
+(likelihood x impact), the business reason and the ISO 27001 draft mapping come
+from the catalogue, which was generated from the team's selection log.
+
+`scripts/harden.sh` fixes the same rules, but the platform never runs it: a
+scanner only reads (REQ-07). The report names the step of `harden.sh` that fixes
+each failure, and a person runs it on the machine.
+
+See `inventory/ubuntu-script.example.yaml` for the settings and the one-time
+sudo set-up inside the VM.
 
 ## Weekly scheduled scan
 

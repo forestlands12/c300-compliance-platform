@@ -80,6 +80,34 @@ class LocalTarget:
         # prints "inactive" and exits 3, and "inactive" is the answer we need.
         return proc.stdout.strip() or None
 
+    # WHAT: Write a file for a script scan (see script_scan.py). Live targets only.
+    # SECURITY: the folder is created 0700 so no other local user can swap the script.
+    def put_text(self, path: str, text: str, *, mode: int = 0o700,
+                 private_dir: str | None = None) -> None:
+        if not self.live:
+            raise TargetError("a snapshot folder cannot run a script scan")
+        if private_dir:
+            Path(private_dir).mkdir(mode=0o700, parents=True, exist_ok=True)
+            os.chmod(private_dir, 0o700)
+        p = Path(path)
+        p.write_text(text, encoding="utf-8")
+        os.chmod(p, mode)
+
+    # WHAT: Run a scanner script as root on this machine and return (rc, stdout, stderr).
+    def run_script(self, path: str, *, timeout: int = 300) -> tuple[int, str, str]:
+        if not self.live:
+            raise TargetError("a snapshot folder cannot run a script scan")
+        command = f"bash {shlex.quote(path)}" if os.geteuid() == 0 else \
+            f"sudo -n bash {shlex.quote(path)}"
+        try:
+            proc = subprocess.run(command, shell=True, capture_output=True, text=True,
+                                  timeout=timeout)
+        except subprocess.TimeoutExpired:
+            raise TargetError(f"the scan script timed out after {timeout}s") from None
+        except OSError as exc:
+            raise TargetError(f"could not run the scan script: {exc}") from exc
+        return proc.returncode, proc.stdout, proc.stderr
+
     def close(self) -> None:
         pass
 
@@ -137,6 +165,41 @@ class SSHTarget:
     def run(self, command: str) -> str | None:
         _, out = self._exec(command, sudo=True)
         return out.strip() or None
+
+    # WHAT: Upload a scanner script to the VM (see script_scan.py).
+    # SECURITY: the folder is made 0700 and owned by the scanning account, so a
+    # local user on the VM cannot replace the script between upload and run.
+    def put_text(self, path: str, text: str, *, mode: int = 0o700,
+                 private_dir: str | None = None) -> None:
+        try:
+            if private_dir:
+                self._exec(f"rm -rf -- {shlex.quote(private_dir)} && "
+                           f"mkdir -m 700 -p -- {shlex.quote(private_dir)}", sudo=False)
+            sftp = self.client.open_sftp()
+            try:
+                with sftp.file(path, "w") as fh:
+                    fh.write(text)
+                sftp.chmod(path, mode)
+            finally:
+                sftp.close()
+        except Exception as exc:
+            raise TargetError(f"could not copy the scan script to {self.description}: "
+                              f"{type(exc).__name__}: {exc}") from exc
+
+    # WHAT: Run the uploaded script as root and return (exit code, stdout, stderr).
+    # WHY: separate from run(), because a script scan needs stderr and the exit
+    # code to explain a sudo refusal instead of showing an empty scan.
+    def run_script(self, path: str, *, timeout: int = 300) -> tuple[int, str, str]:
+        command = f"sudo -n bash {shlex.quote(path)}" if self.use_sudo else \
+            f"bash {shlex.quote(path)}"
+        try:
+            _, stdout, stderr = self.client.exec_command(command, timeout=timeout)
+            out = stdout.read().decode("utf-8", errors="replace")
+            err = stderr.read().decode("utf-8", errors="replace")
+            return stdout.channel.recv_exit_status(), out, err
+        except Exception as exc:
+            raise TargetError(f"running the scan script on {self.description} failed: "
+                              f"{type(exc).__name__}: {exc}") from exc
 
     def close(self) -> None:
         self.client.close()

@@ -14,6 +14,7 @@ import yaml
 
 from .targets import LocalTarget, SSHTarget, TargetError, WindowsFileTarget, WinRMTarget
 
+SCANNERS = ("builtin", "script")
 TRANSPORTS = {
     "linux": ("snapshot", "local", "ssh"),
     "windows": ("file", "winrm"),
@@ -44,6 +45,16 @@ class Host:
     sudo: bool = False
     accept_unknown_host_key: bool = False
     use_https: bool = False
+    # WHAT: how this host is checked. "builtin" = our Python collectors and
+    # controls/baseline.yaml; "script" = run a shell scanner on the machine and
+    # read its verdicts (see script_scan.py), e.g. Ace's scripts/fyp-scan.sh.
+    scanner: str = "builtin"
+    script: str = ""        # the scanner script to run (scanner: script)
+    benchmark: str = ""     # its rule catalogue, e.g. controls/cis-ubuntu-24.04.yaml
+    # SECURITY: a copy of the script already installed on the machine and owned by
+    # root. Preferred over uploading, because then a NOPASSWD sudo rule for that
+    # one path cannot be abused: the scanning account cannot edit the file.
+    remote_script: str = ""
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -127,6 +138,18 @@ def load_inventory(path: str | Path) -> Inventory:
         if "password" in raw:
             # SECURITY: refuse plain-text passwords so nobody commits one by accident.
             raise InventoryError(f"{path}: {name} has a plain 'password'. Use password_env instead.")
+        scanner = raw.get("scanner", "builtin")
+        if scanner not in SCANNERS:
+            raise InventoryError(f"{path}: {name} has unknown scanner '{scanner}' "
+                                 f"({', '.join(SCANNERS)})")
+        if scanner == "script":
+            for key in ("script", "benchmark"):
+                if not raw.get(key):
+                    raise InventoryError(f"{path}: {name} uses scanner: script, so it needs "
+                                         f"a '{key}:' path")
+            if transport not in ("ssh", "local"):
+                raise InventoryError(f"{path}: {name}: a script scan needs transport ssh or "
+                                     f"local, not '{transport}'")
         kind = raw.get("kind", "server")
         if kind not in KINDS:
             raise InventoryError(f"{path}: {name} has unknown kind '{kind}' ({', '.join(KINDS)})")
@@ -134,8 +157,9 @@ def load_inventory(path: str | Path) -> Inventory:
         args = {k: v for k, v in raw.items() if k in known}
         # WHY: paths in the inventory are relative to the inventory file, not to
         # wherever the user happened to start Python.
-        if args.get("path"):
-            args["path"] = str((path.parent / os.path.expanduser(str(args["path"]))).resolve())
+        for key in ("path", "script", "benchmark"):
+            if args.get(key):
+                args[key] = str((path.parent / os.path.expanduser(str(args[key]))).resolve())
         names.add(name)
         hosts.append(Host(**{**args, "name": name, "kind": kind},
                           services=tuple(raw.get("services") or ()),

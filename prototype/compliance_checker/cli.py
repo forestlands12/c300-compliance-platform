@@ -59,6 +59,12 @@ def main(argv: list[str] | None = None) -> int:
     _common(rp)
     rp.add_argument("--out", default="compliance-report.html")
 
+    sc = sub.add_parser("script-check",
+                        help="check a shell scanner (e.g. scripts/fyp-scan.sh) against its "
+                             "rule catalogue, so the two never drift apart")
+    sc.add_argument("--script", default=str(PROTOTYPE / "scripts" / "fyp-scan.sh"))
+    sc.add_argument("--benchmark", default=str(PROTOTYPE / "controls" / "cis-ubuntu-24.04.yaml"))
+
     sub.add_parser("ai-test", help="check the optional AI assistant settings and connection "
                                    "(run on school wifi or VPN)")
 
@@ -117,6 +123,20 @@ def _run_command(args) -> int:
                 print(f"  - {line}")
             print("Now run a scan (dashboard button or scan-all) to see it caught.")
         return 0
+    if args.command == "script-check":
+        from .script_scan import compare, load_benchmark
+        bench = load_benchmark(args.benchmark)
+        diff = compare(bench, args.script)
+        print(f"{bench.label} ({bench.profile})")
+        print(f"  script:    {args.script}")
+        print(f"  catalogue: {args.benchmark}")
+        print(f"  {len(diff['both'])} rules in both")
+        for key, text in (("only_in_script", "in the script but NOT in the catalogue "
+                                             "(no risk rating yet)"),
+                          ("only_in_catalogue", "in the catalogue but NOT checked by the script")):
+            if diff[key]:
+                print(f"  {len(diff[key])} {text}: {', '.join(diff[key])}")
+        return 1 if diff["only_in_script"] or diff["only_in_catalogue"] else 0
     if args.command == "ai-test":
         from .assistant import self_test
         ok, msg = self_test()
@@ -139,6 +159,11 @@ def _run_command(args) -> int:
                           on_progress=lambda h, s: print(f"  {h:<20} {s}"))
         summary = build_summary(store, inventory.organisation)
         print(f"Run {run_id} saved to {db_path}. Posture score: {summary['score']}%")
+        cov = summary.get("coverage") or {}
+        if cov.get("low"):
+            # FIX(B-08): never report a score from a handful of checks without saying so.
+            print(f"  WARNING: only {cov['assessed']} of {cov['total']} checks could be made "
+                  f"({cov['percent']}% coverage), so this score is not yet meaningful.")
         for h in summary["hosts"]:
             state = f"ERROR {h['error']}" if h["error"] else f"{h['score']}%  ({h['FAIL']} fail)"
             print(f"  {h['name']:<20} {state}")

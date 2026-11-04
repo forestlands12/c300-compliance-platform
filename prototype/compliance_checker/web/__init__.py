@@ -76,7 +76,9 @@ def create_app(inventory: Inventory, controls: list[Control], store: Store,
         data["inventory_hosts"] = [{"name": h.name, "role": h.role, "kind": h.kind,
                                     "platform": h.platform, "transport": h.transport}
                                    for h in inv.hosts]
-        data["controls_total"] = len(controls)
+        # WHY: a host scanned by a shell script (scanner: script) has its own rule
+        # catalogue, so the header must not claim only the built-in controls exist.
+        data["controls_total"] = max(len(controls), data.get("counts", {}).get("total", 0))
         return jsonify(data)
 
     @app.post("/api/scan")

@@ -286,5 +286,161 @@ class HtmlReportTests(unittest.TestCase):
         self.assertIn("Org", html)
 
 
+# WHAT: A fake machine that pretends to run a scanner script, so the script path
+# through the engine is tested without a VM (output below is real fyp-scan.sh output).
+class FakeScriptTarget:
+    description = "fake ssh target"
+
+    def __init__(self, out="", err="", rc=0, fail_put=False):
+        self.out, self.err, self.rc, self.fail_put = out, err, rc, fail_put
+        self.uploaded, self.ran, self.cleaned = {}, [], []
+
+    def put_text(self, path, text, *, mode=0o700, private_dir=None):
+        if self.fail_put:
+            from compliance_checker.targets import TargetError
+            raise TargetError("could not copy the scan script")
+        self.uploaded[path] = (text, mode, private_dir)
+
+    def run_script(self, path, *, timeout=300):
+        self.ran.append(path)
+        return self.rc, self.out, self.err
+
+    def run(self, command):
+        self.cleaned.append(command)
+        return ""
+
+    def close(self):
+        pass
+
+
+SCRIPT_OUTPUT = """ubu-test|CIS-5.1.20|SSH root login disabled|no|yes|FAIL|2026-11-04T14:32:00+08:00
+ubu-test|CIS-4.2.3|Firewall (ufw) active|active|active|PASS|2026-11-04T14:32:00+08:00
+ubu-test|CIS-9.9.9|A rule Ace added today|yes|no|FAIL|2026-11-04T14:32:00+08:00
+sudo: a password is required
+ubu-test|SCORE|Compliance score|42 rules|15 passed|35%|2026-11-04T14:32:00+08:00
+"""
+
+BENCHMARK = HERE / "controls" / "cis-ubuntu-24.04.yaml"
+SCANNER = HERE / "scripts" / "fyp-scan.sh"
+
+
+class ScriptScanTests(unittest.TestCase):
+    def setUp(self):
+        from compliance_checker.script_scan import load_benchmark
+        self.bench = load_benchmark(BENCHMARK)
+
+    def test_catalogue_matches_the_script(self):
+        # WHY: if Ace edits fyp-scan.sh and nobody updates the catalogue, the
+        # dashboard would show rules with no agreed risk rating. Fail loudly here.
+        from compliance_checker.script_scan import compare
+        diff = compare(self.bench, SCANNER)
+        self.assertEqual(diff["only_in_script"], [])
+        self.assertEqual(diff["only_in_catalogue"], [])
+        self.assertEqual(len(diff["both"]), 42)
+
+    def test_every_rule_has_a_risk_rating_and_reason(self):
+        for rule_id, control in self.bench.controls.items():
+            self.assertIn(control.severity, ("low", "medium", "high", "critical"), rule_id)
+            self.assertIn("Risk ", control.rationale, rule_id)
+            self.assertTrue(control.remediation["linux"], rule_id)
+            self.assertTrue(control.frameworks.get("cis_ubuntu_24_04"), rule_id)
+
+    def test_parse_output_ignores_noise_and_reads_the_verdicts(self):
+        from compliance_checker.script_scan import parse_output
+        rows, score = parse_output(SCRIPT_OUTPUT)
+        self.assertEqual([r.rule_id for r in rows], ["CIS-5.1.20", "CIS-4.2.3", "CIS-9.9.9"])
+        self.assertEqual(rows[0].status, "FAIL")
+        self.assertEqual(rows[0].actual, "yes")
+        self.assertIn("15 passed", score)
+
+    def test_scan_keeps_unknown_rules_and_marks_the_rest_not_collected(self):
+        from compliance_checker.script_scan import run_script_scan
+        target = FakeScriptTarget(out=SCRIPT_OUTPUT)
+        results, error = run_script_scan(target, self.bench, SCANNER)
+        self.assertIsNone(error)
+        self.assertEqual(len(results), 42 + 1)  # catalogue + the rule only the script knows
+        by_id = {r.control.id: r for r in results}
+        self.assertEqual(by_id["CIS-5.1.20"].status.value, "FAIL")
+        self.assertEqual(by_id["CIS-5.1.20"].control.severity, "critical")
+        self.assertEqual(by_id["CIS-4.2.3"].status.value, "PASS")
+        self.assertEqual(by_id["CIS-9.9.9"].control.severity, "medium")
+        # a rule the script never reported is a gap, never a pass (D-04)
+        self.assertEqual(by_id["CIS-7.2.2"].status.value, "NOT_COLLECTED")
+        self.assertTrue(target.cleaned, "the uploaded script must be removed again")
+
+    def test_sudo_refusal_is_explained_not_silent(self):
+        from compliance_checker.script_scan import run_script_scan
+        target = FakeScriptTarget(out="", err="sudo: a password is required", rc=1)
+        results, error = run_script_scan(target, self.bench, SCANNER)
+        self.assertEqual(results, [])
+        self.assertIn("password for sudo", error)
+
+    def test_installed_copy_is_not_uploaded(self):
+        # SECURITY: with remote_script the root-owned copy is run as it is.
+        from compliance_checker.script_scan import run_script_scan
+        target = FakeScriptTarget(out=SCRIPT_OUTPUT)
+        run_script_scan(target, self.bench, SCANNER, remote_script="/usr/local/sbin/fyp-scan.sh")
+        self.assertEqual(target.uploaded, {})
+        self.assertEqual(target.ran, ["/usr/local/sbin/fyp-scan.sh"])
+        self.assertEqual(target.cleaned, [])
+
+    def test_engine_scans_a_script_host_and_stores_it(self):
+        from compliance_checker.engine import scan_host
+        from compliance_checker.inventory import load_inventory
+        tmp = Path(tempfile.mkdtemp(prefix="cc-script-"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "inv.yaml").write_text(f"""organisation: SME Supermarket
+environment: test
+hosts:
+  - name: UBU-WEB
+    platform: linux
+    transport: ssh
+    address: 10.0.0.1
+    username: ace
+    scanner: script
+    script: {SCANNER}
+    benchmark: {BENCHMARK}
+""", encoding="utf-8")
+        host = load_inventory(tmp / "inv.yaml").hosts[0]
+        with mock.patch.object(host, "open", return_value=FakeScriptTarget(out=SCRIPT_OUTPUT)):
+            results, error = scan_host(host, [])
+        self.assertIsNone(error)
+        self.assertEqual(sum(1 for r in results if r["status"] == "FAIL"), 2)
+        self.assertTrue(all(r["reference"] for r in results))
+
+    def test_inventory_rejects_a_script_host_with_no_script(self):
+        from compliance_checker.inventory import InventoryError, load_inventory
+        tmp = Path(tempfile.mkdtemp(prefix="cc-script-"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "bad.yaml").write_text("""organisation: x
+environment: y
+hosts:
+  - name: UBU-WEB
+    platform: linux
+    transport: ssh
+    scanner: script
+""", encoding="utf-8")
+        with self.assertRaises(InventoryError):
+            load_inventory(tmp / "bad.yaml")
+
+
+class CoverageWarningTests(unittest.TestCase):
+    # FIX(B-08): a real VM scan showed 100% from a single check that could be read.
+    def test_low_coverage_is_flagged(self):
+        from compliance_checker.scoring import coverage
+        results = [{"status": "PASS", "severity": "high"}] + \
+                  [{"status": "NOT_COLLECTED", "severity": "high"}] * 12
+        cov = coverage(results)
+        self.assertTrue(cov["low"])
+        self.assertEqual(cov["assessed"], 1)
+        self.assertEqual(cov["total"], 13)
+
+    def test_full_coverage_is_not_flagged(self):
+        from compliance_checker.scoring import coverage
+        results = [{"status": "PASS", "severity": "high"}] * 8 + \
+                  [{"status": "FAIL", "severity": "low"}] * 2
+        self.assertFalse(coverage(results)["low"])
+
+
 if __name__ == "__main__":
     unittest.main()

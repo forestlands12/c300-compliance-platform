@@ -18,6 +18,9 @@ SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 # WHAT: Frameworks shown on the dashboard. Mapping is indicative, see controls/baseline.yaml.
 FRAMEWORKS = {
     "baseline": "C300 SME baseline (CIS-style)",
+    # WHY: unlike the two below, this one is not indicative: the rule numbers come
+    # from the team's own selection log for that benchmark version.
+    "cis_ubuntu_24_04": "CIS Ubuntu 24.04 v1.0.0 (Level 1 Server)",
     "cis_v8": "CIS Controls v8",
     "pci_dss_v4": "PCI DSS v4.0 (card payments)",
 }
@@ -50,6 +53,23 @@ def pass_rate(results: list[dict]) -> float | None:
     return round(100 * c["PASS"] / assessed, 1) if assessed else None
 
 
+# WHAT: How much of the machine we could actually read.
+# WHY: a score from two checks out of forty looks reassuring and means nothing.
+# The dashboard and the report warn when coverage is low (bug B-08), so nobody
+# reports "100%" after a scan that mostly failed to collect anything.
+LOW_COVERAGE_PERCENT = 60
+MIN_ASSESSED = 5
+
+
+def coverage(results: list[dict]) -> dict[str, Any]:
+    c = counts(results)
+    assessed = c["PASS"] + c["FAIL"]
+    percent = round(100 * assessed / c["total"], 1) if c["total"] else None
+    return {"assessed": assessed, "total": c["total"], "percent": percent,
+            "low": bool(c["total"]) and (assessed < MIN_ASSESSED
+                                         or (percent is not None and percent < LOW_COVERAGE_PERCENT))}
+
+
 def domain_scores(results: list[dict]) -> list[dict[str, Any]]:
     groups: dict[str, list[dict]] = defaultdict(list)
     for r in results:
@@ -80,6 +100,10 @@ def framework_scores(results: list[dict]) -> list[dict[str, Any]]:
             else:
                 unknown += 1
         mapped = [r for rs in reqs.values() for r in rs]
+        # WHY: a framework with nothing mapped to it (e.g. PCI DSS on a scan of one
+        # Ubuntu server) would show "0 / 0" and read like a failure. Leave it out.
+        if not reqs:
+            continue
         out.append({"key": key, "name": name, "requirements": len(reqs),
                     "requirements_passed": passed, "requirements_failed": failed,
                     "requirements_unknown": unknown, "checks_pass_rate": pass_rate(mapped),
@@ -147,6 +171,7 @@ def build_summary(store, organisation: str = "", environment: str = "") -> dict[
             "transport": hs["transport"], "location": hs["location"], "error": hs["error"],
             "scanned_at": hs["scanned_at"], "host_scan_id": hs["id"],
             "score": posture(results), "pass_rate": pass_rate(results), **counts(results),
+            "coverage": coverage(results),
             "baseline_scan_id": base["id"] if base else None,
             "baseline_set_at": base["baseline_set_at"] if base else None,
             "drift_against": ("baseline" if base and base["id"] != hs["id"]
@@ -176,6 +201,7 @@ def build_summary(store, organisation: str = "", environment: str = "") -> dict[
         "pass_rate": pass_rate(all_results),
         "delta": None if score is None or prev is None else round(score - prev, 1),
         "counts": counts(all_results),
+        "coverage": coverage(all_results),
         "hosts": hosts,
         "top_failures": failures,
         "domains": domain_scores(all_results),
