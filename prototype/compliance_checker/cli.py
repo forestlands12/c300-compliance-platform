@@ -54,6 +54,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="write collect_windows.ps1 for offline Windows collection")
     ex.add_argument("--out", default="collect_windows.ps1")
 
+    rp = sub.add_parser("report", help="write a readable HTML report of the latest saved scan "
+                                       "(open it, print it, or save it as PDF)")
+    _common(rp)
+    rp.add_argument("--out", default="compliance-report.html")
+
     sub.add_parser("ai-test", help="check the optional AI assistant settings and connection "
                                    "(run on school wifi or VPN)")
 
@@ -138,6 +143,13 @@ def _run_command(args) -> int:
             state = f"ERROR {h['error']}" if h["error"] else f"{h['score']}%  ({h['FAIL']} fail)"
             print(f"  {h['name']:<20} {state}")
         return 1 if summary["counts"]["FAIL"] else 0
+    if args.command == "report":
+        from .html_report import render_report
+        out = Path(args.out)
+        out.write_text(render_report(store, inventory.organisation, inventory.environment),
+                       encoding="utf-8")
+        print(f"Report written to {out.resolve()}  (open it in a browser, or print it to PDF)")
+        return 0
     if args.command == "baseline":
         names = [args.target_host] if args.target_host else [h.name for h in inventory.hosts]
         for name in names:

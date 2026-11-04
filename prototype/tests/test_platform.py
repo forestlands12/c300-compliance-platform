@@ -258,5 +258,33 @@ class DashboardApiTests(unittest.TestCase):
         self.assertEqual(len(ev.get_json()["hosts"]), 4)
 
 
+class HtmlReportTests(unittest.TestCase):
+    def setUp(self):
+        self.pg = Playground()
+        self.addCleanup(self.pg.close)
+
+    def test_report_after_drift_has_sections_and_org(self):
+        from compliance_checker.html_report import render_report
+        self.pg.scan()
+        self.pg.apply_drift()
+        self.pg.scan()
+        html = render_report(self.pg.store, "SME Supermarket", "Demo")
+        self.assertIn("SME Supermarket", html)
+        self.assertIn("SHOP-WEB-01", html)
+        self.assertIn("<!doctype html>", html.lower())
+
+    def test_report_escapes_hostile_values(self):
+        from compliance_checker.html_report import render_report
+        self.pg.scan()
+        html = render_report(self.pg.store, "<script>alert(1)</script>", "x")
+        self.assertNotIn("<script>alert(1)</script>", html)
+        self.assertIn("&lt;script&gt;", html)
+
+    def test_report_on_empty_store_does_not_crash(self):
+        from compliance_checker.html_report import render_report
+        html = render_report(self.pg.store, "Org", "Env")
+        self.assertIn("Org", html)
+
+
 if __name__ == "__main__":
     unittest.main()
