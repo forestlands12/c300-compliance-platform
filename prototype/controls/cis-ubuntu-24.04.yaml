@@ -1,0 +1,558 @@
+# CIS Ubuntu Linux 24.04 LTS Benchmark v1.0.0 - the 42 rules the team kept.
+# WHAT: the catalogue for script-based scans. Each rule is checked by Ace's
+#   scripts/fyp-scan.sh using the audit method from the CIS PDF; this file holds
+#   the title, the risk rating and the business reason, so the dashboard, the
+#   score and the report can show them.
+# WHY: the rules are NOT re-implemented in Python. One source of truth for the
+#   Ubuntu checks (the script), one source of truth for the risk (this file,
+#   generated from the team's CIS_Ubuntu_24.04_v1.0.0_Selection_Log.xlsx).
+# Risk: score = likelihood x impact, each 1-3; 9 critical, 6 high, 3-4 medium, 1-2 low.
+# ISO/IEC 27001:2022 Annex A mapping is the team's draft, not a certification.
+# TODO(Ahmad, T-05): confirm the ISO mapping with the supervisor.
+benchmark:
+  name: CIS Ubuntu Linux 24.04 LTS Benchmark
+  version: v1.0.0
+  profile: Level 1 - Server
+  scanner: scripts/fyp-scan.sh
+  remediation: scripts/harden.sh
+  platforms: [linux]
+rules:
+  - id: CIS-5.1.20
+    cis_id: "5.1.20"
+    harden_step: "CIS 5.1.x SSH (5.1.1, 5.1.4, 5.1.11, 5.1.14, 5.1.19, 5.1.20)"
+    title: "Ensure sshd PermitRootLogin is disabled"
+    short: "SSH root login disabled"
+    expected: "no"
+    severity: critical
+    domain: remote
+    risk: {likelihood: 3, impact: 3, score: 9, rating: "Critical"}
+    rationale: "Root is the first account attackers try over the internet; root login = full control of the shop server and customer data"
+    iso27001: "A.8.5 Secure authentication; A.8.2 Privileged access rights"
+    chapter: "5 Access Control"
+    category: "Remote access (SSH)"
+    demo_drift: true
+  - id: CIS-5.1.19
+    cis_id: "5.1.19"
+    harden_step: "CIS 5.1.x SSH (5.1.1, 5.1.4, 5.1.11, 5.1.14, 5.1.19, 5.1.20)"
+    title: "Ensure sshd PermitEmptyPasswords is disabled"
+    short: "SSH empty passwords disabled"
+    expected: "no"
+    severity: high
+    domain: remote
+    risk: {likelihood: 2, impact: 3, score: 6, rating: "High"}
+    rationale: "An account with an empty password could be logged into over SSH with no secret at all"
+    iso27001: "A.8.5 Secure authentication"
+    chapter: "5 Access Control"
+    category: "Remote access (SSH)"
+    demo_drift: true
+  - id: CIS-5.3.3.2.2
+    cis_id: "5.3.3.2.2"
+    harden_step: "CIS 5.3.3.2.2 password length"
+    title: "Ensure minimum password length is configured"
+    short: "Minimum password length"
+    expected: ">=14"
+    severity: high
+    domain: identity
+    risk: {likelihood: 2, impact: 3, score: 6, rating: "High"}
+    rationale: "Short passwords are cracked quickly, giving access to the server"
+    iso27001: "A.5.17 Authentication information"
+    chapter: "5 Access Control"
+    category: "Password policy"
+    demo_drift: true
+  - id: CIS-4.2.3
+    cis_id: "4.2.3"
+    harden_step: "CIS 4.2.x firewall (4.2.3 on, 4.2.4 loopback, 4.2.6 open ports, 4.2.7 default deny)"
+    title: "Ensure ufw service is enabled"
+    short: "Firewall (ufw) active"
+    expected: "active"
+    severity: critical
+    domain: network
+    risk: {likelihood: 3, impact: 3, score: 9, rating: "Critical"}
+    rationale: "With the firewall off, every service on the web server is exposed to the internet"
+    iso27001: "A.8.20 Networks security"
+    chapter: "4 Host Based Firewall"
+    category: "Firewall & open ports"
+    demo_drift: true
+  - id: CIS-4.2.7
+    cis_id: "4.2.7"
+    harden_step: "CIS 4.2.x firewall (4.2.3 on, 4.2.4 loopback, 4.2.6 open ports, 4.2.7 default deny)"
+    title: "Ensure ufw default deny firewall policy"
+    short: "Firewall default deny"
+    expected: "deny in/out"
+    severity: high
+    domain: network
+    risk: {likelihood: 3, impact: 2, score: 6, rating: "High"}
+    rationale: "Default-allow lets any new or forgotten service be reached from outside"
+    iso27001: "A.8.20 Networks security"
+    chapter: "4 Host Based Firewall"
+    category: "Firewall & open ports"
+    demo_drift: true
+  - id: CIS-5.1.1
+    cis_id: "5.1.1"
+    harden_step: "CIS 5.1.x SSH (5.1.1, 5.1.4, 5.1.11, 5.1.14, 5.1.19, 5.1.20)"
+    title: "Ensure permissions on /etc/ssh/sshd_config are configured"
+    short: "SSH config file permissions"
+    expected: "600 root:root"
+    severity: medium
+    domain: remote
+    risk: {likelihood: 1, impact: 3, score: 3, rating: "Medium"}
+    rationale: "If others can edit the SSH settings they can silently re-open root login"
+    iso27001: "A.8.9 Configuration management"
+    chapter: "5 Access Control"
+    category: "Remote access (SSH)"
+  - id: CIS-5.1.4
+    cis_id: "5.1.4"
+    harden_step: "CIS 5.1.x SSH (5.1.1, 5.1.4, 5.1.11, 5.1.14, 5.1.19, 5.1.20)"
+    title: "Ensure sshd access is configured"
+    short: "SSH access limited to named users"
+    expected: "allowusers <list>"
+    severity: high
+    domain: remote
+    risk: {likelihood: 2, impact: 3, score: 6, rating: "High"}
+    rationale: "Without an allow list, any account on the server (including new ones) can be tried over SSH"
+    iso27001: "A.8.5 Secure authentication; A.5.15 Access control"
+    chapter: "5 Access Control"
+    category: "Remote access (SSH)"
+  - id: CIS-5.1.11
+    cis_id: "5.1.11"
+    harden_step: "CIS 5.1.x SSH (5.1.1, 5.1.4, 5.1.11, 5.1.14, 5.1.19, 5.1.20)"
+    title: "Ensure sshd IgnoreRhosts is enabled"
+    short: "SSH IgnoreRhosts enabled"
+    expected: "yes"
+    severity: medium
+    domain: remote
+    risk: {likelihood: 1, impact: 3, score: 3, rating: "Medium"}
+    rationale: "Old trust files would allow login without a password (rare today)"
+    iso27001: "A.8.5 Secure authentication"
+    chapter: "5 Access Control"
+    category: "Remote access (SSH)"
+  - id: CIS-5.1.14
+    cis_id: "5.1.14"
+    harden_step: "CIS 5.1.x SSH (5.1.1, 5.1.4, 5.1.11, 5.1.14, 5.1.19, 5.1.20)"
+    title: "Ensure sshd LogLevel is configured"
+    short: "SSH LogLevel"
+    expected: "INFO or VERBOSE"
+    severity: low
+    domain: remote
+    risk: {likelihood: 2, impact: 1, score: 2, rating: "Low"}
+    rationale: "Without SSH logging, failed and successful logins cannot be investigated"
+    iso27001: "A.8.15 Logging"
+    chapter: "5 Access Control"
+    category: "Remote access (SSH)"
+  - id: CIS-5.2.6
+    cis_id: "5.2.6"
+    harden_step: "CIS 5.2.6 sudo timeout, 5.2.7 su restricted"
+    title: "Ensure sudo authentication timeout is configured correctly"
+    short: "sudo timeout"
+    expected: "<=15 min"
+    severity: low
+    domain: identity
+    risk: {likelihood: 1, impact: 2, score: 2, rating: "Low"}
+    rationale: "A long sudo timeout lets someone at an unattended terminal act as admin"
+    iso27001: "A.8.2 Privileged access rights"
+    chapter: "5 Access Control"
+    category: "Privileged access (sudo/su)"
+  - id: CIS-5.2.7
+    cis_id: "5.2.7"
+    harden_step: "CIS 5.2.6 sudo timeout, 5.2.7 su restricted"
+    title: "Ensure access to the su command is restricted"
+    short: "su restricted to empty group"
+    expected: "pam_wheel + empty group"
+    severity: medium
+    domain: identity
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "Unrestricted su lets anyone with the root password become root without an audit trail"
+    iso27001: "A.8.2 Privileged access rights; A.8.18 Use of privileged utility programs"
+    chapter: "5 Access Control"
+    category: "Privileged access (sudo/su)"
+  - id: CIS-5.4.1.1
+    cis_id: "5.4.1.1"
+    harden_step: "CIS 5.4.1.1 password expiry 365, 5.4.1.5 inactive lock 45"
+    title: "Ensure password expiration is configured"
+    short: "Password expiry"
+    expected: "<=365 days"
+    severity: low
+    domain: identity
+    risk: {likelihood: 1, impact: 2, score: 2, rating: "Low"}
+    rationale: "Passwords that never expire stay valid long after a leak"
+    iso27001: "A.5.17 Authentication information"
+    chapter: "5 Access Control"
+    category: "Password policy"
+  - id: CIS-5.4.1.5
+    cis_id: "5.4.1.5"
+    harden_step: "CIS 5.4.1.1 password expiry 365, 5.4.1.5 inactive lock 45"
+    title: "Ensure inactive password lock is configured"
+    short: "Inactive password lock"
+    expected: "<=45 days"
+    severity: medium
+    domain: identity
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "Accounts of staff who left stay usable if never locked"
+    iso27001: "A.5.18 Access rights"
+    chapter: "5 Access Control"
+    category: "Password policy"
+  - id: CIS-5.4.3.2
+    cis_id: "5.4.3.2"
+    harden_step: "CIS 5.4.3.2 idle shell timeout 900s"
+    title: "Ensure default user shell timeout is configured"
+    short: "Idle shell timeout"
+    expected: "TMOUT<=900"
+    severity: low
+    domain: identity
+    risk: {likelihood: 1, impact: 2, score: 2, rating: "Low"}
+    rationale: "An idle logged-in session can be used by someone else"
+    iso27001: "A.8.5 Secure authentication"
+    chapter: "5 Access Control"
+    category: "User accounts"
+  - id: CIS-5.3.2.2
+    cis_id: "5.3.2.2"
+    harden_step: "CIS 5.3.2.2 + 5.3.3.1.x lockout (deny 4, unlock 900s)"
+    title: "Ensure pam_faillock module is enabled"
+    short: "Account lockout module enabled"
+    expected: "preauth+authfail+account"
+    severity: high
+    domain: identity
+    risk: {likelihood: 3, impact: 2, score: 6, rating: "High"}
+    rationale: "Without lockout, attackers can guess passwords over SSH without limit"
+    iso27001: "A.8.5 Secure authentication"
+    chapter: "5 Access Control"
+    category: "Password policy"
+  - id: CIS-5.3.3.1.1
+    cis_id: "5.3.3.1.1"
+    harden_step: "CIS 5.3.2.2 + 5.3.3.1.x lockout (deny 4, unlock 900s)"
+    title: "Ensure password failed attempts lockout is configured"
+    short: "Lockout after failed logins"
+    expected: "deny 1-5"
+    severity: high
+    domain: identity
+    risk: {likelihood: 3, impact: 2, score: 6, rating: "High"}
+    rationale: "Lockout threshold decides how many guesses an attacker gets"
+    iso27001: "A.8.5 Secure authentication"
+    chapter: "5 Access Control"
+    category: "Password policy"
+  - id: CIS-5.3.3.3.1
+    cis_id: "5.3.3.3.1"
+    harden_step: "CIS 5.3.2.4 + 5.3.3.3.1 password history (remember 24)"
+    title: "Ensure password history remember is configured"
+    short: "Password history"
+    expected: "remember>=24"
+    severity: medium
+    domain: identity
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "Password reuse lets an old leaked password keep working"
+    iso27001: "A.5.17 Authentication information"
+    chapter: "5 Access Control"
+    category: "Password policy"
+  - id: CIS-5.3.3.4.1
+    cis_id: "5.3.3.4.1"
+    harden_step: "CIS 5.3.3.4.1 remove nullok (no empty passwords)"
+    title: "Ensure pam_unix does not include nullok"
+    short: "No empty passwords (nullok removed)"
+    expected: "no nullok"
+    severity: high
+    domain: identity
+    risk: {likelihood: 2, impact: 3, score: 6, rating: "High"}
+    rationale: "nullok lets an account with an empty password log in"
+    iso27001: "A.8.5 Secure authentication"
+    chapter: "5 Access Control"
+    category: "Password policy"
+  - id: CIS-1.1.1.9
+    cis_id: "1.1.1.9"
+    harden_step: "CIS 1.1.1.9 USB storage"
+    title: "Ensure usb-storage kernel module is not available"
+    short: "USB storage disabled"
+    expected: "not loadable"
+    severity: medium
+    domain: endpoint
+    risk: {likelihood: 1, impact: 3, score: 3, rating: "Medium"}
+    rationale: "USB storage allows copying customer data off, or malware on, with physical access"
+    iso27001: "A.7.10 Storage media"
+    chapter: "1 Initial Setup"
+    category: "Hardening (kernel modules)"
+  - id: CIS-1.3.1.1
+    cis_id: "1.3.1.1"
+    harden_step: "CIS 1.2.2.1 updates + packages (1.3.1.1 AppArmor, 5.3.2.3 pwquality, 4.2.1 ufw)"
+    title: "Ensure AppArmor is installed"
+    short: "AppArmor installed"
+    expected: "both packages"
+    severity: medium
+    domain: endpoint
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "AppArmor limits what a hacked web application can do on the server"
+    iso27001: "A.8.9 Configuration management"
+    chapter: "1 Initial Setup"
+    category: "Hardening (AppArmor)"
+  - id: CIS-1.3.1.2
+    cis_id: "1.3.1.2"
+    harden_step: "CIS 1.3.1.2 AppArmor at boot"
+    title: "Ensure AppArmor is enabled in the bootloader configuration"
+    short: "AppArmor enabled at boot"
+    expected: "all boot entries"
+    severity: medium
+    domain: endpoint
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "If AppArmor is not on at boot, the protection silently disappears"
+    iso27001: "A.8.9 Configuration management"
+    chapter: "1 Initial Setup"
+    category: "Hardening (AppArmor)"
+  - id: CIS-1.2.2.1
+    cis_id: "1.2.2.1"
+    harden_step: "CIS 1.2.2.1 updates + packages (1.3.1.1 AppArmor, 5.3.2.3 pwquality, 4.2.1 ufw)"
+    title: "Ensure updates, patches, and additional security software are installed"
+    short: "Security updates installed"
+    expected: "0 pending"
+    severity: critical
+    domain: patching
+    risk: {likelihood: 3, impact: 3, score: 9, rating: "Critical"}
+    rationale: "Unpatched internet-facing servers are the most common way in; known flaws are exploited within days"
+    iso27001: "A.8.8 Management of technical vulnerabilities"
+    chapter: "1 Initial Setup"
+    category: "Patching"
+  - id: CIS-2.1.1
+    cis_id: "2.1.1"
+    title: "Ensure autofs services are not in use"
+    short: "autofs not in use"
+    expected: "not installed"
+    severity: low
+    domain: network
+    risk: {likelihood: 1, impact: 1, score: 1, rating: "Low"}
+    rationale: "Automount of shared drives is an unnecessary service on a web server"
+    iso27001: "A.8.9 Configuration management"
+    chapter: "2 Services"
+    category: "Unnecessary services"
+  - id: CIS-2.4.1.2
+    cis_id: "2.4.1.2"
+    harden_step: "CIS 2.4.1.2 /etc/crontab"
+    title: "Ensure permissions on /etc/crontab are configured"
+    short: "/etc/crontab permissions"
+    expected: "600 root:root"
+    severity: medium
+    domain: endpoint
+    risk: {likelihood: 1, impact: 3, score: 3, rating: "Medium"}
+    rationale: "If others can edit scheduled tasks they can run commands as root"
+    iso27001: "A.8.9 Configuration management"
+    chapter: "2 Services"
+    category: "Hardening (scheduled jobs)"
+  - id: CIS-4.1.1
+    cis_id: "4.1.1"
+    title: "Ensure a single firewall configuration utility is in use"
+    short: "Single firewall tool in use"
+    expected: "exactly one"
+    severity: low
+    domain: network
+    risk: {likelihood: 1, impact: 2, score: 2, rating: "Low"}
+    rationale: "Two firewall tools at once give unpredictable rules"
+    iso27001: "A.8.20 Networks security"
+    chapter: "4 Host Based Firewall"
+    category: "Firewall & open ports"
+  - id: CIS-4.2.1
+    cis_id: "4.2.1"
+    harden_step: "CIS 1.2.2.1 updates + packages (1.3.1.1 AppArmor, 5.3.2.3 pwquality, 4.2.1 ufw)"
+    title: "Ensure ufw is installed"
+    short: "ufw installed"
+    expected: "installed"
+    severity: medium
+    domain: network
+    risk: {likelihood: 1, impact: 3, score: 3, rating: "Medium"}
+    rationale: "No firewall software means no network filtering at all (normally always installed)"
+    iso27001: "A.8.20 Networks security"
+    chapter: "4 Host Based Firewall"
+    category: "Firewall & open ports"
+  - id: CIS-4.2.4
+    cis_id: "4.2.4"
+    harden_step: "CIS 4.2.x firewall (4.2.3 on, 4.2.4 loopback, 4.2.6 open ports, 4.2.7 default deny)"
+    title: "Ensure ufw loopback traffic is configured"
+    short: "Firewall loopback rules"
+    expected: "lo allowed, 127/8 denied"
+    severity: low
+    domain: network
+    risk: {likelihood: 1, impact: 2, score: 2, rating: "Low"}
+    rationale: "Traffic faking a local address could bypass firewall rules"
+    iso27001: "A.8.20 Networks security"
+    chapter: "4 Host Based Firewall"
+    category: "Firewall & open ports"
+  - id: CIS-4.2.6
+    cis_id: "4.2.6"
+    harden_step: "CIS 4.2.x firewall (4.2.3 on, 4.2.4 loopback, 4.2.6 open ports, 4.2.7 default deny)"
+    title: "Ensure ufw firewall rules exist for all open ports"
+    short: "Firewall rule for every open port"
+    expected: "no missing"
+    severity: medium
+    domain: network
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "An open port with no rule may be an unapproved service reachable from outside"
+    iso27001: "A.8.20 Networks security"
+    chapter: "4 Host Based Firewall"
+    category: "Firewall & open ports"
+  - id: CIS-5.1.2
+    cis_id: "5.1.2"
+    harden_step: "CIS 5.1.x SSH (5.1.1, 5.1.4, 5.1.11, 5.1.14, 5.1.19, 5.1.20)"
+    title: "Ensure permissions on SSH private host key files are configured"
+    short: "SSH private host key permissions"
+    expected: "600 root"
+    severity: medium
+    domain: remote
+    risk: {likelihood: 1, impact: 3, score: 3, rating: "Medium"}
+    rationale: "A stolen server key lets an attacker impersonate the shop server"
+    iso27001: "A.8.24 Use of cryptography"
+    chapter: "5 Access Control"
+    category: "Remote access (SSH)"
+  - id: CIS-5.1.22
+    cis_id: "5.1.22"
+    harden_step: "CIS 5.1.x SSH (5.1.1, 5.1.4, 5.1.11, 5.1.14, 5.1.19, 5.1.20)"
+    title: "Ensure sshd UsePAM is enabled"
+    short: "SSH UsePAM enabled"
+    expected: "yes"
+    severity: medium
+    domain: remote
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "If SSH bypasses PAM, our password and lockout rules do not apply to remote logins"
+    iso27001: "A.8.5 Secure authentication"
+    chapter: "5 Access Control"
+    category: "Remote access (SSH)"
+  - id: CIS-5.2.1
+    cis_id: "5.2.1"
+    title: "Ensure sudo is installed"
+    short: "sudo installed"
+    expected: "installed"
+    severity: low
+    domain: identity
+    risk: {likelihood: 1, impact: 2, score: 2, rating: "Low"}
+    rationale: "sudo provides logged, per-person admin access (normally installed)"
+    iso27001: "A.8.2 Privileged access rights"
+    chapter: "5 Access Control"
+    category: "Privileged access (sudo/su)"
+  - id: CIS-5.3.2.3
+    cis_id: "5.3.2.3"
+    harden_step: "CIS 1.2.2.1 updates + packages (1.3.1.1 AppArmor, 5.3.2.3 pwquality, 4.2.1 ufw)"
+    title: "Ensure pam_pwquality module is enabled"
+    short: "Password strength module enabled"
+    expected: "enabled"
+    severity: high
+    domain: identity
+    risk: {likelihood: 2, impact: 3, score: 6, rating: "High"}
+    rationale: "Without strength checks, staff can set weak passwords that are easily guessed"
+    iso27001: "A.5.17 Authentication information"
+    chapter: "5 Access Control"
+    category: "Password policy"
+  - id: CIS-5.4.2.4
+    cis_id: "5.4.2.4"
+    title: "Ensure root account access is controlled"
+    short: "Root account access controlled"
+    expected: "P or L"
+    severity: high
+    domain: identity
+    risk: {likelihood: 2, impact: 3, score: 6, rating: "High"}
+    rationale: "An unprotected root account gives full control to anyone with console access"
+    iso27001: "A.8.2 Privileged access rights"
+    chapter: "5 Access Control"
+    category: "User accounts"
+  - id: CIS-5.4.2.7
+    cis_id: "5.4.2.7"
+    title: "Ensure system accounts do not have a valid login shell"
+    short: "Service accounts have no login shell"
+    expected: "none"
+    severity: medium
+    domain: identity
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "Service accounts with a login shell can be used to log in if compromised"
+    iso27001: "A.8.2 Privileged access rights"
+    chapter: "5 Access Control"
+    category: "User accounts"
+  - id: CIS-6.1.1.1
+    cis_id: "6.1.1.1"
+    title: "Ensure journald service is enabled and active"
+    short: "journald running"
+    expected: "static/active"
+    severity: medium
+    domain: logging
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "Without the system journal, an attack leaves no record to investigate"
+    iso27001: "A.8.15 Logging"
+    chapter: "6 Logging and Auditing"
+    category: "Logging"
+  - id: CIS-6.1.3.1
+    cis_id: "6.1.3.1"
+    title: "Ensure rsyslog is installed"
+    short: "rsyslog installed"
+    expected: "installed"
+    severity: low
+    domain: logging
+    risk: {likelihood: 1, impact: 2, score: 2, rating: "Low"}
+    rationale: "rsyslog is needed to forward logs to a central server"
+    iso27001: "A.8.15 Logging"
+    chapter: "6 Logging and Auditing"
+    category: "Logging"
+  - id: CIS-6.1.3.2
+    cis_id: "6.1.3.2"
+    title: "Ensure rsyslog service is enabled and active"
+    short: "rsyslog running"
+    expected: "enabled/active"
+    severity: medium
+    domain: logging
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "If rsyslog stops, logs are not written or forwarded to the central log server"
+    iso27001: "A.8.15 Logging"
+    chapter: "6 Logging and Auditing"
+    category: "Logging"
+  - id: CIS-6.1.4.1
+    cis_id: "6.1.4.1"
+    harden_step: "CIS 6.1.4.1 new log files private: sysstat UMASK 0027 (found in Lab 6)"
+    title: "Ensure access to all logfiles has been configured"
+    short: "Log file permissions"
+    expected: "0 too open"
+    severity: medium
+    domain: logging
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "Readable or writable logs leak information and can be altered to hide an attack"
+    iso27001: "A.8.15 Logging"
+    chapter: "6 Logging and Auditing"
+    category: "Logging"
+  - id: CIS-7.1.1
+    cis_id: "7.1.1"
+    title: "Ensure permissions on /etc/passwd are configured"
+    short: "/etc/passwd permissions"
+    expected: "644 root:root"
+    severity: low
+    domain: data
+    risk: {likelihood: 1, impact: 2, score: 2, rating: "Low"}
+    rationale: "If the account list is writable, accounts could be added"
+    iso27001: "A.8.3 Information access restriction"
+    chapter: "7 System Maintenance"
+    category: "File permissions & accounts"
+  - id: CIS-7.1.5
+    cis_id: "7.1.5"
+    title: "Ensure permissions on /etc/shadow are configured"
+    short: "/etc/shadow permissions"
+    expected: "640 root:shadow"
+    severity: medium
+    domain: data
+    risk: {likelihood: 1, impact: 3, score: 3, rating: "Medium"}
+    rationale: "Readable password hashes can be cracked offline"
+    iso27001: "A.5.17 Authentication information"
+    chapter: "7 System Maintenance"
+    category: "File permissions & accounts"
+  - id: CIS-7.1.11
+    cis_id: "7.1.11"
+    title: "Ensure world writable files and directories are secured"
+    short: "No world-writable files"
+    expected: "0 and 0"
+    severity: medium
+    domain: data
+    risk: {likelihood: 2, impact: 2, score: 4, rating: "Medium"}
+    rationale: "World-writable files can be changed by any user to plant malicious code"
+    iso27001: "A.8.3 Information access restriction"
+    chapter: "7 System Maintenance"
+    category: "File permissions & accounts"
+  - id: CIS-7.2.2
+    cis_id: "7.2.2"
+    title: "Ensure /etc/shadow password fields are not empty"
+    short: "No empty password fields"
+    expected: "none"
+    severity: high
+    domain: data
+    risk: {likelihood: 2, impact: 3, score: 6, rating: "High"}
+    rationale: "Any account with no password is an open door"
+    iso27001: "A.5.17 Authentication information"
+    chapter: "7 System Maintenance"
+    category: "File permissions & accounts"

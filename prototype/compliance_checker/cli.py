@@ -11,7 +11,10 @@ from .loader import load_controls
 from .models import Status
 from .report import print_report, write_json
 
-DEFAULT_CONTROLS = Path(__file__).resolve().parent.parent / "controls" / "baseline.yaml"
+PROTOTYPE = Path(__file__).resolve().parent.parent
+DEFAULT_CONTROLS = PROTOTYPE / "controls" / "baseline.yaml"
+DEFAULT_DB = PROTOTYPE / "data" / "history.db"
+DEMO_DB = PROTOTYPE / "data" / "demo-history.db"
 
 
 # WHAT: Parse the command line, run collect -> check -> report, return an exit code.
@@ -27,7 +30,47 @@ def main(argv: list[str] | None = None) -> int:
     scan.add_argument("--host", help="name shown in the report (default: source name)")
     scan.add_argument("--controls", default=str(DEFAULT_CONTROLS))
     scan.add_argument("--json-out", help="also save results as JSON evidence")
+
+    # WHAT: Scan every host in an inventory and save the run (used by the weekly scheduled task).
+    sa = sub.add_parser("scan-all", help="scan every host in an inventory and save to history")
+    _common(sa)
+    sa.add_argument("--trigger", default="cli", choices=["cli", "scheduled", "manual"],
+                    help="label stored with the run (use 'scheduled' in Task Scheduler / cron)")
+
+    db = sub.add_parser("dashboard", help="start the web dashboard with the one-click scan button")
+    _common(db)
+    db.add_argument("--port", type=int, default=8300)
+    db.add_argument("--host", default="127.0.0.1",
+                    help="address to listen on (default: this PC only)")
+
+    bl = sub.add_parser("baseline", help="mark each host's latest scan as its baseline")
+    _common(bl)
+    bl.add_argument("--host", dest="target_host", help="only this host (default: all hosts)")
+
+    dm = sub.add_parser("demo", help="demo playground: reset sample hosts, or apply deliberate drift")
+    dm.add_argument("action", choices=["reset", "drift"])
+
+    ex = sub.add_parser("export-windows-script",
+                        help="write collect_windows.ps1 for offline Windows collection")
+    ex.add_argument("--out", default="collect_windows.ps1")
+
+    rp = sub.add_parser("report", help="write a readable HTML report of the latest saved scan "
+                                       "(open it, print it, or save it as PDF)")
+    _common(rp)
+    rp.add_argument("--out", default="compliance-report.html")
+
+    sc = sub.add_parser("script-check",
+                        help="check a shell scanner (e.g. scripts/fyp-scan.sh) against its "
+                             "rule catalogue, so the two never drift apart")
+    sc.add_argument("--script", default=str(PROTOTYPE / "scripts" / "fyp-scan.sh"))
+    sc.add_argument("--benchmark", default=str(PROTOTYPE / "controls" / "cis-ubuntu-24.04.yaml"))
+
+    sub.add_parser("ai-test", help="check the optional AI assistant settings and connection "
+                                   "(run on school wifi or VPN)")
+
     args = p.parse_args(argv)
+    if args.command != "scan":
+        return _run_command(args)
 
     controls = load_controls(args.controls)
     facts = COLLECTORS[args.platform](args.source)
@@ -46,6 +89,107 @@ def main(argv: list[str] | None = None) -> int:
     if statuses & {Status.ERROR, Status.NOT_COLLECTED}:
         return 2
     return 0
+
+
+def _common(sp: argparse.ArgumentParser) -> None:
+    sp.add_argument("--inventory", help="inventory YAML (default: the demo playground)")
+    sp.add_argument("--controls", default=str(DEFAULT_CONTROLS))
+    sp.add_argument("--db", help="history database (default: data/history.db, "
+                                 "or data/demo-history.db for the demo)")
+
+
+def _paths(args) -> tuple[Path, Path]:
+    from . import demo
+    if args.inventory:
+        return Path(args.inventory), Path(args.db or DEFAULT_DB)
+    demo.ensure()  # WHY: first run on a new laptop works with no setup at all
+    return demo.DEMO_INVENTORY, Path(args.db or DEMO_DB)
+
+
+# WHAT: The newer multi-host commands (scan-all, dashboard, baseline, demo, export).
+def _run_command(args) -> int:
+    from . import demo
+    from .engine import run_scan
+    from .inventory import load_inventory
+    from .scoring import build_summary
+    from .store import Store
+
+    if args.command == "demo":
+        if args.action == "reset":
+            print(f"Demo hosts reset to their baseline state in {demo.reset()}")
+        else:
+            print("Deliberate drift applied to the demo hosts:")
+            for line in demo.drift():
+                print(f"  - {line}")
+            print("Now run a scan (dashboard button or scan-all) to see it caught.")
+        return 0
+    if args.command == "script-check":
+        from .script_scan import compare, load_benchmark
+        bench = load_benchmark(args.benchmark)
+        diff = compare(bench, args.script)
+        print(f"{bench.label} ({bench.profile})")
+        print(f"  script:    {args.script}")
+        print(f"  catalogue: {args.benchmark}")
+        print(f"  {len(diff['both'])} rules in both")
+        for key, text in (("only_in_script", "in the script but NOT in the catalogue "
+                                             "(no risk rating yet)"),
+                          ("only_in_catalogue", "in the catalogue but NOT checked by the script")):
+            if diff[key]:
+                print(f"  {len(diff[key])} {text}: {', '.join(diff[key])}")
+        return 1 if diff["only_in_script"] or diff["only_in_catalogue"] else 0
+    if args.command == "ai-test":
+        from .assistant import self_test
+        ok, msg = self_test()
+        print(msg)
+        return 0 if ok else 1
+    if args.command == "export-windows-script":
+        from .windows_ps import offline_script
+        # WHY: utf-8-sig, because Windows PowerShell 5.1 misreads UTF-8 without a BOM.
+        Path(args.out).write_text(offline_script(), encoding="utf-8-sig")
+        print(f"Wrote {args.out}")
+        return 0
+
+    inv_path, db_path = _paths(args)
+    inventory = load_inventory(inv_path)
+    controls = load_controls(args.controls)
+    store = Store(db_path)
+
+    if args.command == "scan-all":
+        run_id = run_scan(inventory, controls, store, trigger=args.trigger,
+                          on_progress=lambda h, s: print(f"  {h:<20} {s}"))
+        summary = build_summary(store, inventory.organisation)
+        print(f"Run {run_id} saved to {db_path}. Posture score: {summary['score']}%")
+        cov = summary.get("coverage") or {}
+        if cov.get("low"):
+            # FIX(B-08): never report a score from a handful of checks without saying so.
+            print(f"  WARNING: only {cov['assessed']} of {cov['total']} checks could be made "
+                  f"({cov['percent']}% coverage), so this score is not yet meaningful.")
+        for h in summary["hosts"]:
+            state = f"ERROR {h['error']}" if h["error"] else f"{h['score']}%  ({h['FAIL']} fail)"
+            print(f"  {h['name']:<20} {state}")
+        return 1 if summary["counts"]["FAIL"] else 0
+    if args.command == "report":
+        from .html_report import render_report
+        out = Path(args.out)
+        out.write_text(render_report(store, inventory.organisation, inventory.environment),
+                       encoding="utf-8")
+        print(f"Report written to {out.resolve()}  (open it in a browser, or print it to PDF)")
+        return 0
+    if args.command == "baseline":
+        names = [args.target_host] if args.target_host else [h.name for h in inventory.hosts]
+        for name in names:
+            hs = store.set_baseline(name)
+            print(f"  {name:<20} " + (f"baseline = scan #{hs}" if hs else "no successful scan yet"))
+        return 0
+    if args.command == "dashboard":
+        from .web import create_app
+        app = create_app(inventory, controls, store)
+        print(f"Dashboard for {inventory.organisation}: http://{args.host}:{args.port}  (Ctrl+C to stop)")
+        if args.host not in ("127.0.0.1", "localhost"):
+            print("WARNING: the dashboard is reachable from other machines on this network.")
+        app.run(host=args.host, port=args.port, debug=False, threaded=True)
+        return 0
+    return 2
 
 
 if __name__ == "__main__":

@@ -1,0 +1,6 @@
+# Demo snapshot (fake data)
+Include /etc/ssh/sshd_config.d/*.conf
+PermitRootLogin no
+MaxAuthTries 4
+KbdInteractiveAuthentication no
+UsePAM yes

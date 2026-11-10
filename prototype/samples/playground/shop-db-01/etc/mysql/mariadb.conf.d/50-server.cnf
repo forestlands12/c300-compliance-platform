@@ -1,0 +1,6 @@
+# Demo snapshot (fake data), MariaDB on the shop's private network
+[mysqld]
+user                    = mysql
+datadir                 = /var/lib/mysql
+bind-address            = 10.10.20.11
+local-infile            = 0

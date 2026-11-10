@@ -69,6 +69,43 @@ Wants tagged code comments explaining what code does and how issues were resolve
 
 - No GitHub remote yet: Ahmad creates the private repo and pushes (steps below). Until then there is still **no backup outside the project folder**.
 
+## Session 4: 28 to 29 Oct 2026 (one-click scan, dashboard, AI assistant)
+
+Branch: `feat/one-click-scan-dashboard` (not merged to `main` yet; `main` is tagged `v0.1.0`).
+
+### Done and verified
+
+- Scan engine for many hosts (`engine.py`), inventory file (`inventory/`), SQLite history (`store.py`),
+  score, drift and framework view (`scoring.py`), 35 checks for Windows 11, Linux, nginx and MySQL/MariaDB.
+- Demo playground "SME Supermarket": 4 sample machines, `demo reset` and `demo drift`
+  (the supervisor's "baseline, then deliberate drift" story). Verified: score 80.3% at baseline,
+  69.1% after drift, every drifted host listed as "worse".
+- Dashboard tested in headless Chrome at desktop and phone width: Run scan, progress, host panel,
+  set baseline, failing-check details, export evidence. Two UI bugs found and fixed (B-04, B-05).
+- Optional AI assistant (`assistant.py`): "Explain this" on every failed check. Offline built-in
+  explanation by default; a real model is used only when `CC_AI_BASE_URL` and `CC_AI_MODEL` are set.
+  Host names are never sent, private IPs are masked, the key is read from the environment.
+  `python -m compliance_checker ai-test` checks the connection. Tested against a fake
+  OpenAI-compatible server, in unit tests and in the browser.
+- Tests: 25 pass (`python -m unittest discover -s tests -v`), 15 of them new.
+- `requirements.txt` now lists Flask (the dashboard needs it).
+- Tracker: B-02 to B-05 in the Issue log, T-20 and T-21, R-09 and R-10, D-09 (proposed).
+
+### Not done / not verified
+
+- Not run against real VMs: SSH and WinRM collection are written but untested (T-09, T-10).
+- The school AI account has not been tried. Its API format is assumed to be
+  OpenAI-compatible; confirm with the module chair (T-20).
+- Scheduled scan commands are documented in `prototype/README.md` but not yet set up on the desktop.
+- Not pushed to GitHub (no remote yet). The bundle `fyp-starter.bundle` holds both branches.
+
+### Next steps (in order)
+
+1. Ahmad: run the demo on the laptop (README quick start) and decide whether to merge the branch into `main`.
+2. Ace and Jayen: point `inventory/playground.yaml` at the real VMs and run `scan-all` (T-09, T-10).
+3. Ahmad: email the module chair about the AI account (T-20), then run `ai-test` on school wifi.
+4. Set up the weekly scheduled scan on the desktop.
+
 ## Working on two machines (desktop and laptop)
 
 Git is the bridge. GitHub holds the one true copy; each machine is a clone.

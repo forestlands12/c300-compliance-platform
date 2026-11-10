@@ -42,6 +42,8 @@ def evaluate(control: Control, facts: dict[str, Any]) -> Result:
                   f"expected {control.operator} {control.expected!r}, found {actual!r}")
 
 
-# WHAT: Run every control that applies to this platform (linux/windows).
-def run_checks(controls: list[Control], facts: dict[str, Any], platform: str) -> list[Result]:
+# WHAT: Run every control that applies to this host.
+# `platform` is "linux"/"windows", or a set of tags such as {"linux", "nginx"}.
+def run_checks(controls: list[Control], facts: dict[str, Any],
+               platform: str | set[str]) -> list[Result]:
     return [evaluate(c, facts) for c in controls if c.applies_to(platform)]

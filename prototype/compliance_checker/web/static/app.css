@@ -1,0 +1,168 @@
+/* Dark dashboard theme. Colours are tokens so the team can re-skin in one place. */
+:root {
+  --bg: #0e0f13;
+  --card: #16171c;
+  --panel: #1c1d23;
+  --line: #272830;
+  --line-soft: #202128;
+  --text: #e7e8ec;
+  --muted: #8d909b;
+  --faint: #5d606b;
+  --accent: #5b8cff;
+  --good: #3fb950;
+  --warn: #d6b21f;
+  --bad: #e5534b;
+  --orange: #e08a3c;
+  --track: #d9dbe1;
+  --radius: 10px;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.45; }
+h2 { font-size: 17px; font-weight: 600; margin: 0 0 14px; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+.muted { color: var(--muted); font-weight: 400; font-size: 12px; }
+.note { color: var(--muted); font-size: 12px; margin: -6px 0 14px; }
+
+/* top bar */
+.topbar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center;
+  gap: 16px; padding: 14px 28px; background: rgba(14,15,19,.92); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo { width: 34px; height: 34px; color: var(--good); }
+.org { font-size: 18px; font-weight: 600; }
+.sub { color: var(--muted); font-size: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-size: 11px; color: var(--muted); }
+.chip:empty { display: none; }
+.actions { display: flex; align-items: center; gap: 12px; }
+.lastscan { color: var(--muted); font-size: 12px; text-align: right; }
+.btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--text); padding: 9px 14px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+.btn svg { width: 16px; height: 16px; }
+.btn.primary { background: var(--good); border-color: var(--good); color: #06150a; padding: 10px 20px; font-size: 15px; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.primary:disabled { opacity: .75; cursor: progress; }
+.btn.ghost:hover { border-color: var(--faint); }
+.btn.small { padding: 6px 10px; font-size: 12px; }
+.spin { width: 16px; height: 16px; border: 2px solid rgba(0,0,0,.25); border-top-color: #06150a; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.progress { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 28px; border-bottom: 1px solid var(--line); background: #121318; }
+.pchip { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pchip.scanning { color: var(--accent); border-color: var(--accent); }
+.pchip.done { color: var(--good); border-color: #23592c; }
+.pchip.error { color: var(--bad); border-color: #6b2622; }
+
+main { max-width: 1440px; margin: 0 auto; padding: 22px 28px 8px; display: grid; gap: 20px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; }
+.card.empty { text-align: center; padding: 60px 20px; }
+.card.empty p { color: var(--muted); max-width: 560px; margin: 0 auto; }
+.grid.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
+/* FIX(B-05, 29 Oct 2026, Claude): on a phone the page scrolled sideways (495px wide
+   on a 390px screen). Grid items default to min-width: auto, so the trend chart and
+   tables forced their column wider than the screen. min-width: 0 lets them shrink. */
+main > *, .grid.two > *, .posture > * { min-width: 0; }
+.panel-title { font-weight: 600; margin-bottom: 10px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+
+/* posture */
+.posture { display: grid; grid-template-columns: 170px 1fr; gap: 14px; align-items: center; }
+.gauge svg { width: 170px; height: 130px; display: block; }
+.gauge .delta { text-align: center; font-size: 12px; color: var(--muted); margin-top: -6px; }
+.delta.up { color: var(--good); } .delta.down { color: var(--bad); }
+.trend svg { width: 100%; height: 150px; display: block; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+.kpi { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 10px 12px; }
+.kpi .v { font-size: 20px; font-weight: 600; }
+.kpi .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.callout { display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--line-soft); border-left: 3px solid var(--accent);
+  border-radius: var(--radius); padding: 12px 14px; }
+.callout b { color: var(--good); }
+.callout svg { flex: none; width: 22px; height: 22px; color: var(--accent); }
+
+/* tables */
+.table-wrap { border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; max-height: 300px; }
+.table-wrap.tall { max-height: 392px; }
+table.list { width: 100%; border-collapse: collapse; }
+.list th { position: sticky; top: 0; background: var(--panel); text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.list td { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.list tr.row { cursor: pointer; }
+.list tr.row:hover td { background: #1b1c22; }
+.list tr.detail td { background: #131419; color: var(--muted); font-size: 13px; }
+.list tr.detail b { color: var(--text); font-weight: 600; }
+.list .empty-row td { color: var(--muted); text-align: center; padding: 22px; }
+.mono { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 12px; }
+.hostcell { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.kicon { width: 18px; height: 18px; color: var(--muted); flex: none; }
+
+.sev { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .04em; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+.sev.critical { background: #e5534b; color: #fff; }
+.sev.high { background: #4a1715; color: #ff8a80; border: 1px solid #7c2a25; }
+.sev.medium { background: #47300f; color: #f2b45f; border: 1px solid #6e4a17; }
+.sev.low { background: #1e2a3d; color: #8fb3ff; border: 1px solid #2c3d59; }
+.st { font-size: 11px; font-weight: 700; }
+.st.PASS { color: var(--good); } .st.FAIL { color: var(--bad); } .st.NOT_COLLECTED, .st.ERROR { color: var(--warn); }
+.arrow.worse { color: var(--bad); } .arrow.better { color: var(--good); } .arrow.changed { color: var(--warn); }
+
+/* bars */
+.bars { border: 1px solid var(--line); border-radius: var(--radius); }
+.bar { display: grid; grid-template-columns: 26px 1fr 52px 120px; gap: 10px; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--line-soft); }
+.bar:last-child { border-bottom: 0; }
+.bar.click { cursor: pointer; }
+.bar.click:hover { background: #1b1c22; }
+.bar .name { overflow: hidden; }
+.bar .name div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .name .muted { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .pct { text-align: right; font-weight: 600; }
+.track { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.fill { height: 100%; border-radius: 4px 0 0 4px; }
+.bar .err { color: var(--bad); font-size: 12px; grid-column: 2 / 5; }
+
+/* frameworks */
+.frameworks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.fw { background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 14px 16px; }
+.fw .name { font-weight: 600; margin-bottom: 10px; }
+.fw .line { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
+.fw .line b { color: var(--text); }
+.stack { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 10px; background: var(--track); }
+
+/* FIX(B-04, 29 Oct 2026, Claude): the host drawer showed on page load and blocked
+   clicks, because ".drawer { display: flex }" beat the browser's default for the
+   hidden attribute. Make hidden always win, for every element. */
+[hidden] { display: none !important; }
+
+/* drawer */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 8; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(760px, 100%); background: var(--card); border-left: 1px solid var(--line);
+  z-index: 9; display: flex; flex-direction: column; }
+.drawer-head { display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.drawer-title { font-size: 17px; font-weight: 600; }
+.drawer-tools { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 20px; flex-wrap: wrap; }
+.drawer-body { overflow: auto; padding: 0 20px 20px; }
+.icon-btn { background: none; border: 0; color: var(--muted); font-size: 26px; cursor: pointer; line-height: 1; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: none; border: 0; color: var(--muted); padding: 6px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+.seg button.on { background: var(--panel); color: var(--text); }
+
+.foot { text-align: center; color: var(--faint); font-size: 11px; padding: 18px; }
+
+@media (max-width: 1000px) {
+  .grid.two, .frameworks { grid-template-columns: minmax(0, 1fr); }
+  .topbar { flex-direction: column; align-items: stretch; padding: 12px 16px; }
+  .actions { justify-content: space-between; }
+  main { padding: 16px; }
+}
+@media (max-width: 560px) {
+  .posture { grid-template-columns: 1fr; justify-items: center; }
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .bar { grid-template-columns: 22px 1fr 44px 70px; }
+}
+
+/* AI assistant explanations (plain text, so pre-wrap keeps its line breaks) */
+.explain-btn { margin-top: 8px; }
+.explain { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  border-radius: 8px; background: var(--panel); color: var(--text); white-space: pre-wrap; font-size: 13px; line-height: 1.5; }
+.explain .src { display: block; margin-top: 6px; color: var(--faint); font-size: 11px; }
+.chip.ai-model { color: var(--accent); border-color: var(--accent); }
+
+/* WHAT: the low-coverage warning above the recommendation (B-08). Amber, not red:
+   it is not a failure, it means we could not read enough to judge the machine. */
+.callout.caution { border-left-color: var(--warn); }
+.callout.caution svg { color: var(--warn); }

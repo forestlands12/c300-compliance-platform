@@ -1,0 +1,4 @@
+# Demo snapshot (fake data): Ubuntu 24.04 database server (customers, orders, stock).
+PASS_MAX_DAYS   99999
+PASS_MIN_DAYS   0
+PASS_WARN_AGE   7

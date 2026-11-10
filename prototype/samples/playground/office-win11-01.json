@@ -1,0 +1,41 @@
+{
+  "_note": "Demo collector output (fake data). Same shape as collect_windows.ps1 output. Back-office PC (stock orders, staff rosters, supplier email).",
+  "secpol": {
+    "inf": "[Unicode]\r\nUnicode=yes\r\n[System Access]\r\nMinimumPasswordAge = 0\r\nMaximumPasswordAge = 42\r\nMinimumPasswordLength = 8\r\nPasswordComplexity = 1\r\nPasswordHistorySize = 5\r\nLockoutBadCount = 0\r\nRequireLogonToChangePassword = 0\r\nForceLogoffWhenHourExpire = 0\r\nNewAdministratorName = \"Administrator\"\r\nNewGuestName = \"Guest\"\r\nClearTextPassword = 0\r\nLSAAnonymousNameLookup = 0\r\nEnableAdminAccount = 0\r\nEnableGuestAccount = 0\r\n[Version]\r\nsignature=\"$CHICAGO$\"\r\nRevision=1\r\n"
+  },
+  "firewall": {
+    "profiles": {
+      "Domain": true,
+      "Private": true,
+      "Public": true
+    }
+  },
+  "defender": {
+    "antivirus_enabled": true,
+    "realtime_enabled": true,
+    "signature_age_days": 3
+  },
+  "system": {
+    "smb1": false,
+    "rdp_deny": 0,
+    "rdp_nla": 1,
+    "uac_lua": 1,
+    "inactivity_secs": null,
+    "autorun": null,
+    "au_disabled": null
+  },
+  "audit": {
+    "logon_inclusion": "Success",
+    "logon_value": "1"
+  },
+  "bitlocker": {
+    "_error": "No TPM found on this virtual machine."
+  },
+  "patches": {
+    "last_patch_days": 48,
+    "last_kb": "KB5063878",
+    "os_caption": "Microsoft Windows 11 Pro",
+    "os_build": "10.0.26100.0",
+    "hostname": "OFFICE-WIN11-01"
+  }
+}

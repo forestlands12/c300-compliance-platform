@@ -1,0 +1,55 @@
+# Scan a real Ubuntu VM with the team's own scanner (scripts/fyp-scan.sh).
+# Copy to ubuntu-script.yaml, fill in the address and username, then:
+#
+#   PowerShell:  $env:CC_SSH_PASS = "the VM password"
+#   bash:        read -rs CC_SSH_PASS && export CC_SSH_PASS
+#   python -m compliance_checker scan-all --inventory inventory/ubuntu-script.yaml
+#
+# SECURITY: never put a password in this file. password_env names an ENVIRONMENT
+# VARIABLE; an SSH key (key_file) with no password at all is better still.
+organisation: SME Supermarket
+environment: VMware playground
+
+hosts:
+  - name: UBU-WEB
+    role: Online shop web server
+    kind: web
+    platform: linux
+    transport: ssh
+    address: 192.168.119.128       # TODO(Ace, T-09): the VM's real IP (`ip a` inside it)
+    username: ace
+    password_env: CC_SSH_PASS      # or: key_file: ~/.ssh/c300_scanner
+    sudo: true                     # fyp-scan.sh reads /etc/shadow, sshd -T, ufw: it needs root
+    accept_unknown_host_key: true  # lab only: set false once the VM is in known_hosts
+
+    # WHAT: check this machine with the shell scanner instead of our Python checks.
+    # WHY: fyp-scan.sh is the team's agreed implementation of the 42 CIS rules we
+    # kept, using the audit method from the CIS PDF. The catalogue adds the risk
+    # rating and the business reason for each rule.
+    scanner: script
+    script: ../scripts/fyp-scan.sh
+    benchmark: ../controls/cis-ubuntu-24.04.yaml
+    # Best practice (see below): run the root-owned copy already on the machine
+    # instead of uploading ours. Comment this out to upload each time.
+    remote_script: /usr/local/sbin/fyp-scan.sh
+
+# ---------------------------------------------------------------------------
+# The scan needs root on the VM, because it reads /etc/shadow, `sshd -T` and ufw.
+# Run these three commands ONCE inside the VM (not on your PC):
+#
+#   sudo install -o root -g root -m 755 fyp-scan.sh /usr/local/sbin/fyp-scan.sh
+#   echo "ace ALL=(root) NOPASSWD: /usr/bin/bash /usr/local/sbin/fyp-scan.sh" \
+#     | sudo tee /etc/sudoers.d/90-c300-scan
+#   sudo chmod 440 /etc/sudoers.d/90-c300-scan
+#
+# SECURITY: install the script to a ROOT-OWNED path first (step 1). A NOPASSWD
+# rule pointing at a file the account can edit would hand that account full root
+# with no password, which is exactly the kind of misconfiguration this project
+# looks for. With the file owned by root, the rule allows one fixed read-only
+# scan and nothing else. Delete /etc/sudoers.d/90-c300-scan when the project ends.
+#
+# Without remote_script the platform uploads the script to /tmp/.c300-scan and
+# runs it, which needs the account to have general sudo rights. Fine for a
+# throwaway lab VM, not for anything else.
+#
+# TODO(Ahmad, T-23): use a dedicated 'scanner' account, not a person's login.

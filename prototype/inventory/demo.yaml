@@ -1,0 +1,35 @@
+# Demo inventory: the playground as saved snapshots (fake data, no VMs needed).
+# Paths are relative to this file. `python -m compliance_checker demo reset` creates them.
+organisation: SME Supermarket
+environment: Demo playground (sample data)
+
+hosts:
+  - name: SHOP-WEB-01
+    role: Online shop web server (nginx)
+    kind: web
+    platform: linux
+    services: [nginx]
+    transport: snapshot
+    path: ../data/demo-targets/shop-web-01
+
+  - name: SHOP-DB-01
+    role: Customer and order database (MariaDB)
+    kind: db
+    platform: linux
+    services: [mysql]
+    transport: snapshot
+    path: ../data/demo-targets/shop-db-01
+
+  - name: POS-WIN11-01
+    role: Cashier PC at the counter
+    kind: pos
+    platform: windows
+    transport: file
+    path: ../data/demo-targets/pos-win11-01.json
+
+  - name: OFFICE-WIN11-01
+    role: Back-office PC (orders, rosters, email)
+    kind: office
+    platform: windows
+    transport: file
+    path: ../data/demo-targets/office-win11-01.json

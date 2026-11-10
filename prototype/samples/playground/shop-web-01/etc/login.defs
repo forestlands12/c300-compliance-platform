@@ -1,0 +1,6 @@
+# Demo snapshot (fake data): Ubuntu 24.04 web server for the online shop.
+MAIL_DIR        /var/mail
+PASS_MAX_DAYS   90
+PASS_MIN_DAYS   1
+PASS_WARN_AGE   7
+UMASK           027
